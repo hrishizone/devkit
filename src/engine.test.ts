@@ -16,7 +16,7 @@ describe('DevKit utility engine',()=>{
   })
   it('converts a timestamp',async()=>expect(await runTool('timestamp','0','',{})).toContain('1970-01-01T00:00:00.000Z'))
   it('creates URL slugs',async()=>expect(await runTool('slug-generator','Hello World!','',{})).toBe('hello-world'))
-  it('creates SQL inserts',async()=>expect(await runTool('sql-insert','[{"id":1}]','',{table:'users'})).toContain('INSERT INTO users'))
+  it('creates SQL inserts',async()=>expect(await runTool('sql-insert','[{"id":1}]','',{table:'users'})).toContain('INSERT INTO \"users\"'))
   it('generates UUID identifiers',async()=>expect((await runTool('uuid-generator','','',{count:'2'})).split('\n')).toHaveLength(2))
 })
 
