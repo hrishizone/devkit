@@ -167,7 +167,7 @@ if(id==='html-formatter')return v.replace(/>\s*</g,'>\n<').trim();
 if(id==='markdown-preview'||id==='github-markdown-preview')return v;
 if(id==='html-meta-tag-builder')return `<title>${esc(opts.title||'Page title')}</title>\n<meta name="description" content="${esc(v)}">`;
 if(id==='open-graph-tag-builder')return `<meta property="og:title" content="${esc(opts.title||'Page title')}">\n<meta property="og:description" content="${esc(v)}">`;
-if(id==='favicon-html-builder')return '<link rel="icon" href="'+(v||'/favicon.ico')+'">';
+if(id==='favicon-html-builder'){const href=v.trim()||'/favicon.ico';if(/^\s*(?:javascript|vbscript):/i.test(href)||/^data:text\/html/i.test(href))throw Error('Favicon URL must not use an executable scheme.');return '<link rel="icon" href="'+esc(href)+'">'}
 if(id==='css-specificity-calculator'){const a=(v.match(/#[\w-]+/g)||[]).length,b=(v.match(/\.[\w-]+|\[[^\]]+\]|:[\w-]+/g)||[]).length,c=(v.match(/(^|[\s>+~])([a-z][\w-]*)/gi)||[]).length;return `Specificity: ${a},${b},${c}`}
 if(id==='css-clamp-builder')return `clamp(${opts.min||'1rem'}, ${opts.preferred||'2vw'}, ${opts.max||'3rem'})`;
 if(id==='css-transform-builder')return 'transform: '+(v||'translateX(0)')+';';
