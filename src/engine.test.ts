@@ -43,7 +43,6 @@ describe('expanded utility coverage',()=>{
 });
 
 
-import { tools } from './tools'
 
 const sampleForTool = (id: string): [string,string,Record<string,string>] => {
   const jsonObj = '{"name":"DevKit","count":2,"active":true,"nested":{"x":1}}'
