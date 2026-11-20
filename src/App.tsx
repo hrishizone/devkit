@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Search, Command, Grid2X2, Braces, Binary, FileText, Database, Globe, Cloud, Network,
   Palette, ShieldCheck, Clock, GitBranch, Star, ChevronRight, Copy, Check, RotateCcw, Menu, X,
@@ -61,10 +61,11 @@ function App(){
   const [mode,setMode]=useState('encode')
   const [options,setOptions]=useState<Record<string,string>>({})
   const [running,setRunning]=useState(false)
+  const executionId=useRef(0)
   useEffect(()=>{
     const onPop=()=>{
       const slug=window.location.pathname.match(/\/tools\/([^/]+)/)?.[1]
-      if(slug&&tools.some(t=>t.id===slug)){setActiveTool(slug);setInput(samples[slug]??'');setOutput('');setError('')}
+      if(slug&&tools.some(t=>t.id===slug)){executionId.current++;setRunning(false);setActiveTool(slug);setInput(samples[slug]??'');setOutput('');setError('')}
     }
     window.addEventListener('popstate',onPop)
     return ()=>window.removeEventListener('popstate',onPop)
@@ -90,15 +91,21 @@ function App(){
   const filtered=useMemo(()=>tools.filter(t=>(activeCategory==='All tools'||t.category===activeCategory)&&(!showFavorites||favorites.includes(t.id))&&(!query||[t.name,t.description,t.category,...t.tags].join(' ').toLowerCase().includes(query.toLowerCase()))),[activeCategory,query,showFavorites,favorites])
   const selectTool=(id:string)=>{
     const t=tools.find(x=>x.id===id); if(!t)return
-    setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setMobileNav(false)
+    executionId.current++;setRunning(false);setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setMobileNav(false)
   }
   const execute=async()=>{
+    const request=++executionId.current
+    const toolId=activeTool,inputValue=input,secondaryValue=secondary,toolOptions={...options,mode}
     setRunning(true);setError('');setOutput('')
-    try { const result=await runTool(activeTool,input,secondary,{...options,mode});setOutput(result) }
-    catch(e:any){setError(e?.message||'Something went wrong. Check your input and try again.')}
-    finally{setRunning(false)}
+    try { const result=await runTool(toolId,inputValue,secondaryValue,toolOptions);if(request===executionId.current)setOutput(result) }
+    catch(e:any){if(request===executionId.current)setError(e?.message||'Something went wrong. Check your input and try again.')}
+    finally{if(request===executionId.current)setRunning(false)}
   }
-  const copy=async()=>{await navigator.clipboard.writeText(output);setCopied(true);setTimeout(()=>setCopied(false),1400)}
+  const copy=async()=>{
+    if(!output)return
+    try{if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');await navigator.clipboard.writeText(output);setCopied(true);window.setTimeout(()=>setCopied(false),1400)}
+    catch{setError('Could not access the clipboard. Check browser permissions or copy the result manually.')}
+  }
   const reset=()=>{setInput(samples[activeTool]??'');setOutput('');setError('')}
   const isDual=['json-diff','text-diff'].includes(activeTool)
   const option=(key:string,value:string)=>setOptions(v=>({...v,[key]:value}))
