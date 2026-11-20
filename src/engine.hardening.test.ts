@@ -270,3 +270,37 @@ describe('production hardening: numeric, byte and date boundaries', () => {
     await expect(runTool('seconds-to-duration', 'NaN', '', {})).rejects.toThrow(/safe integer/i)
   })
 })
+
+describe('production hardening: data format and credential safety', () => {
+  it('rejects duplicate CSV headers and inconsistent rows', async () => {
+    await expect(runTool('csv-to-json', 'name,name\nAva,Ben', '', {})).rejects.toThrow(/unique header/i)
+    await expect(runTool('csv-to-json', 'name,role\nAva', '', {})).rejects.toThrow(/column counts/i)
+    expect(await runTool('csv-validator', 'name,role\nAva', '', {})).toContain('Invalid CSV')
+  })
+
+  it('quotes SQL identifiers for both standard and MySQL dialects', async () => {
+    expect(await runTool('sql-identifier-quoter', 'users,id', '', {})).toBe('"users", "id"')
+    expect(await runTool('sql-identifier-quoter', 'users,id', '', { dialect: 'mysql' })).toBe('`users`, `id`')
+    await expect(runTool('sql-identifier-quoter', 'users; DROP TABLE users', '', {})).rejects.toThrow(/identifier/i)
+  })
+
+  it('does not expose database URL credentials or secret query values', async () => {
+    const url = 'postgresql://alice:secret@db.example.com:5432/app?token=topsecret&sslmode=require'
+    const parsed = await runTool('postgresql-url-parser', url, '', {})
+    expect(parsed).not.toContain('alice')
+    expect(parsed).not.toContain('secret')
+    expect(parsed).not.toContain('topsecret')
+    const masked = await runTool('database-url-masker', url, '', {})
+    expect(masked).not.toContain('alice')
+    expect(masked).not.toContain('secret')
+    expect(masked).not.toContain('topsecret')
+    expect(masked).toContain('REDACTED')
+  })
+
+  it('quotes Kubernetes ConfigMap values and validates label keys', async () => {
+    const config = await runTool('kubernetes-configmap-builder', 'MESSAGE=hello "world"\nREGION=ap-south-1', '', {})
+    expect(config).toContain('"hello \\"world\\""')
+    await expect(runTool('kubernetes-configmap-builder', 'BAD KEY=value', '', {})).rejects.toThrow(/ConfigMap key/i)
+    await expect(runTool('kubernetes-label-builder', 'app=web,app=api', '', {})).rejects.toThrow(/unique/i)
+  })
+})
