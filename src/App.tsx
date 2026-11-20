@@ -62,6 +62,8 @@ function App(){
   const [options,setOptions]=useState<Record<string,string>>({})
   const [running,setRunning]=useState(false)
   const executionId=useRef(0)
+  useEffect(()=>()=>{executionId.current++},[])
+  useEffect(()=>{executionId.current++;setRunning(false)},[activeTool,input,secondary,mode,options])
   useEffect(()=>{
     const onPop=()=>{
       const slug=window.location.pathname.match(/\/tools\/([^/]+)/)?.[1]
