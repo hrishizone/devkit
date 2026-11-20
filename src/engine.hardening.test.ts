@@ -305,3 +305,35 @@ describe('production hardening: data format and credential safety', () => {
     await expect(runTool('kubernetes-label-builder', 'app=web,app=api', '', {})).rejects.toThrow(/unique/i)
   })
 })
+
+describe('production hardening: HTTP header injection', () => {
+  it('rejects CRLF in header values and malformed MIME types', async () => {
+    await expect(runTool('content-type-builder', 'application/json\r\nX-Evil: yes', '', {})).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('content-type-builder', 'not-a-mime-type', '', {})).rejects.toThrow(/MIME/i)
+    expect(await runTool('content-type-builder', 'application/json; charset=utf-8', '', {})).toBe('Content-Type: application/json; charset=utf-8')
+  })
+
+  it('validates bearer tokens and basic credentials', async () => {
+    await expect(runTool('bearer-header-builder', 'abc\r\nX-Evil: yes', '', {})).rejects.toThrow(/CR, LF/i)
+    expect(await runTool('bearer-header-builder', 'eyJhbGciOiJIUzI1NiJ9.signature', '', {})).toContain('Bearer eyJ')
+    await expect(runTool('http-basic-auth-builder', 'username-only', '', {})).rejects.toThrow(/username:password/i)
+  })
+
+  it('validates CORS origins and methods', async () => {
+    await expect(runTool('cors-header-guide', '', '', { origin: 'https://example.com\r\nX-Evil: yes' })).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('cors-header-guide', '', '', { origin: 'javascript:alert(1)' })).rejects.toThrow(/HTTP\(S\) origin/i)
+    expect(await runTool('cors-header-guide', '', '', { origin: 'https://example.com' })).toContain('Access-Control-Allow-Origin: https://example.com')
+  })
+
+  it('validates Accept media ranges and HTTP dates', async () => {
+    expect(await runTool('http-accept-header-builder', 'text/html, application/json', '', {})).toBe('Accept: text/html, application/json')
+    await expect(runTool('http-accept-header-builder', 'javascript:alert(1)', '', {})).rejects.toThrow(/media ranges/i)
+    await expect(runTool('http-date-converter', 'not a date', '', {})).rejects.toThrow(/valid date/i)
+  })
+
+  it('preserves repeated parsed headers rather than overwriting them', async () => {
+    const out = await runTool('header-parser', 'Set-Cookie: a=1\nSet-Cookie: b=2', '', {})
+    expect(out).toContain('a=1')
+    expect(out).toContain('b=2')
+  })
+})
