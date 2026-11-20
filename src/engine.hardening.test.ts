@@ -201,7 +201,8 @@ describe('production hardening: generated markup and infrastructure', () => {
     expect(out).toMatch(/container name/i)
     await expect(runTool('docker-run', 'nginx:latest; whoami', '', {})).rejects.toThrow(/Docker image/i)
     await expect(runTool('docker-port-mapper', '70000:80', '', {})).rejects.toThrow(/65,535/i)
-    expect(await runTool('docker-port-mapper', '8080:80', '', {})).toContain('8080:80')
+    expect(await runTool('docker-port-mapper', '8080:80,8443:443', '', {})).toContain("-p '8443:443'")
+    await expect(runTool('docker-port-mapper', '90-80', '', {})).rejects.toThrow(/ascending/i)
   })
 
   it('validates Kubernetes and Terraform identifiers', async () => {
