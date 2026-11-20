@@ -3,7 +3,7 @@ const dec=(s:string)=>decodeURIComponent(escape(atob(s.trim())));
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const lines=(s:string)=>s.replace(/\r/g,'').split('\n');
 const words=(s:string)=>s.trim().match(/\S+/g)||[];
-const json=(s:string)=>JSON.parse(s);
+const json=(s:string)=>{const value=JSON.parse(s);const stack:{value:any;depth:number}[]=[{value,depth:0}];let nodes=0;while(stack.length){const item=stack.pop()!;if(++nodes>100000)throw Error('JSON contains too many values (maximum 100,000).');if(item.depth>100)throw Error('JSON nesting exceeds the supported depth of 100.');if(item.value&&typeof item.value==='object')for(const child of Object.values(item.value))stack.push({value:child,depth:item.depth+1})}return value};
 const pretty=(x:unknown)=>JSON.stringify(x,null,2);
 const slug=(s:string)=>s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const csv=(s:string,d=',')=>{if(d.length!==1)throw Error('CSV delimiter must be one character.');const out:string[][]=[];let row:string[]=[],value='',quoted=false,closed=false;for(let i=0;i<s.length;i++){const c=s[i];if(quoted){if(c==='"'&&s[i+1]==='"'){value+='"';i++}else if(c==='"'){quoted=false;closed=true}else value+=c;continue}if(closed){if(c===d){row.push(value);value='';closed=false}else if(c==='\n'){row.push(value);out.push(row);row=[];value='';closed=false}else if(c==='\r'&&s[i+1]==='\n'){i++;row.push(value);out.push(row);row=[];value='';closed=false}else throw Error('Unexpected character after a closing CSV quote.');continue}if(c==='"'){if(value.length)throw Error('Unexpected quote inside an unquoted CSV field.');quoted=true}else if(c===d){row.push(value);value=''}else if(c==='\n'){row.push(value);out.push(row);row=[];value=''}else if(c==='\r'&&s[i+1]==='\n'){i++;row.push(value);out.push(row);row=[];value=''}else if(c==='\r')throw Error('CSV contains an unexpected carriage return.');else value+=c}if(quoted)throw Error('CSV contains an unterminated quoted field.');if(closed||value.length||row.length){row.push(value);out.push(row)}return out};
@@ -16,7 +16,7 @@ const qsql=(x:any)=>x===null?'NULL':typeof x==='number'||typeof x==='boolean'?St
 const sqlIdentifier=(value:string,dialect='standard')=>{const parts=value.split('.');if(!parts.length||parts.some(p=>!p||! /^[A-Za-z_][A-Za-z0-9_$ ]*$/.test(p)))throw Error('Use a valid SQL identifier (letters, digits, underscore; dot-separated names allowed).');const q=dialect==='mysql'?'`':'"';return parts.map(p=>q+p.replaceAll(q,q+q)+q).join('.')};
 const statuses:Record<string,string>={'200':'OK','201':'Created','204':'No Content','301':'Moved Permanently','302':'Found','304':'Not Modified','400':'Bad Request','401':'Unauthorized','403':'Forbidden','404':'Not Found','405':'Method Not Allowed','409':'Conflict','422':'Unprocessable Content','429':'Too Many Requests','500':'Internal Server Error','502':'Bad Gateway','503':'Service Unavailable','504':'Gateway Timeout'};
 const mime:Record<string,string>={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',xml:'application/xml',txt:'text/plain',csv:'text/csv',pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',svg:'image/svg+xml',zip:'application/zip',yaml:'application/yaml'};
-export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{
+async function runToolInternal(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{
 if(typeof id!=='string'||!id)throw Error('Select a valid tool.');
 if(typeof input!=='string'||typeof secondary!=='string'||!opts||typeof opts!=='object'||Array.isArray(opts))throw Error('Invalid tool input.');
 const MAX_INPUT=1_000_000,MAX_OUTPUT=5_000_000;
@@ -202,3 +202,4 @@ if(id==='log-level-filter')return lines(v).filter(x=>new RegExp(opts.level||'ERR
 if(id==='port-number-reference')return v+': '+(({22:'SSH',53:'DNS',80:'HTTP',443:'HTTPS',3306:'MySQL',5432:'PostgreSQL',6379:'Redis',27017:'MongoDB'} as Record<number,string>)[Number(v)]||'Port reference');
 throw Error('No implementation exists for this tool yet.');
 }
+export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
