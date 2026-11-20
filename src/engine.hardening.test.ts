@@ -136,3 +136,26 @@ describe('production hardening: parser and regex safety', () => {
     await expect(runTool('regex-tester', 'abc', 'a'.repeat(257), { flags: 'g' })).rejects.toThrow(/too long/i)
   })
 })
+
+describe('production hardening: JWT and secure generators', () => {
+  const encodePart = (value: unknown) => btoa(JSON.stringify(value)).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_')
+  const token = (payload: unknown, signature = 'sig') => encodePart({ alg: 'none', typ: 'JWT' }) + '.' + encodePart(payload) + '.' + signature
+
+  it('requires exactly three JWT segments and valid JSON objects', async () => {
+    await expect(runTool('jwt-decoder', 'a.b', '', {})).rejects.toThrow(/compact JWT/i)
+    await expect(runTool('jwt-decoder', 'a.b.c.d', '', {})).rejects.toThrow(/compact JWT/i)
+    await expect(runTool('jwt-decoder', '%%%.' + encodePart({ sub: '1' }) + '.sig', '', {})).rejects.toThrow(/Base64URL/i)
+  })
+
+  it('treats exp=0 as expired and validates NumericDate types', async () => {
+    expect(await runTool('jwt-expiry-checker', token({ exp: 0 }), '', {})).toContain('(expired by time')
+    await expect(runTool('jwt-expiry-checker', token({ exp: 'tomorrow' }), '', {})).rejects.toThrow(/NumericDate/i)
+    expect(await runTool('jwt-expiry-checker', token({ sub: '123' }), '', {})).toBe('No exp claim.')
+  })
+
+  it('generates tokens only from the documented alphabet and requested length', async () => {
+    const result = await runTool('password', '', '', { length: '64' })
+    expect(result).toHaveLength(64)
+    expect(result).toMatch(/^[A-Za-z0-9!@#$%^&*]+$/)
+  })
+})
