@@ -8,12 +8,16 @@ const pretty=(x:unknown)=>JSON.stringify(x,null,2);
 const slug=(s:string)=>s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const csv=(s:string,d=',')=>{const out:string[][]=[];let row:string[]=[],v='',q=false;for(let i=0;i<s.length;i++){const c=s[i];if(c==='"'&&q&&s[i+1]==='"'){v+='"';i++}else if(c==='"')q=!q;else if(c===d&&!q){row.push(v);v=''}else if(c==='\n'&&!q){row.push(v);out.push(row);row=[];v=''}else if(c!=='\r')v+=c}if(v||row.length){row.push(v);out.push(row)}return out};
 const csvOut=(r:unknown[][])=>r.map(row=>row.map(x=>{const s=String(x??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');
-const ipN=(s:string)=>{const a=s.split('.').map(Number);if(a.length!==4||a.some(x=>!Number.isInteger(x)||x<0||x>255))throw Error('Enter a valid IPv4 address.');return a.reduce((n,x)=>(n*256+x)>>>0,0)>>>0};
+const ipN=(s:string)=>{if(!/^(?:0|[1-9]\\d{0,2})(?:\\.(?:0|[1-9]\\d{0,2})){3}$/.test(s))throw Error('Enter a valid dotted-decimal IPv4 address.');const a=s.split('.').map(Number);if(a.some(x=>x>255))throw Error('Each IPv4 octet must be between 0 and 255.');return a.reduce((n,x)=>(n*256+x)>>>0,0)>>>0};
 const ipS=(n:number)=>[n>>>24,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
 const qsql=(x:any)=>x===null?'NULL':typeof x==='number'||typeof x==='boolean'?String(x):"'"+String(x??'').replace(/'/g,"''")+"'";
 const statuses:Record<string,string>={'200':'OK','201':'Created','204':'No Content','301':'Moved Permanently','302':'Found','304':'Not Modified','400':'Bad Request','401':'Unauthorized','403':'Forbidden','404':'Not Found','405':'Method Not Allowed','409':'Conflict','422':'Unprocessable Content','429':'Too Many Requests','500':'Internal Server Error','502':'Bad Gateway','503':'Service Unavailable','504':'Gateway Timeout'};
 const mime:Record<string,string>={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',xml:'application/xml',txt:'text/plain',csv:'text/csv',pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',svg:'image/svg+xml',zip:'application/zip',yaml:'application/yaml'};
 export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{
+if(typeof id!=='string'||!id)throw Error('Select a valid tool.');
+if(typeof input!=='string'||typeof secondary!=='string'||!opts||typeof opts!=='object'||Array.isArray(opts))throw Error('Invalid tool input.');
+const MAX_INPUT=1_000_000,MAX_OUTPUT=5_000_000;
+if(input.length>MAX_INPUT||secondary.length>MAX_INPUT)throw Error('Input is too large. Maximum is 1,000,000 characters per field.');
 const mode=opts.mode||'encode',v=input;
 if(['json-formatter','json-validator','json-lines-formatter','json-lines-validator'].includes(id))return id.startsWith('json-lines')?lines(v).filter(x=>x.trim()).map(x=>pretty(json(x))).join('\n'):pretty(json(v));
 if(id==='xml-minifier')return v.replace(/<!--[\s\S]*?-->/g,'').replace(/>\s+</g,'><').replace(/\s{2,}/g,' ').trim();
