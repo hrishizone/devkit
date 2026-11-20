@@ -1,0 +1,90 @@
+import { describe, expect, it } from 'vitest'
+import { runTool } from './engine'
+
+describe('production hardening: input boundaries', () => {
+  it('rejects oversized primary and secondary inputs before processing', async () => {
+    await expect(runTool('json-formatter', 'x'.repeat(1_000_001), '', {})).rejects.toThrow(/too large/i)
+    await expect(runTool('json-diff', '{}', 'x'.repeat(1_000_001), {})).rejects.toThrow(/too large/i)
+  })
+
+  it('rejects malformed IPv4 octets and empty octets', async () => {
+    await expect(runTool('ipv4-to-integer', '256.1.1.1', '', {})).rejects.toThrow(/IPv4/i)
+    await expect(runTool('ipv4-to-integer', '1..2.3', '', {})).rejects.toThrow(/IPv4/i)
+    await expect(runTool('ipv4-to-integer', '01.2.3.4', '', {})).rejects.toThrow(/IPv4/i)
+  })
+
+  it('bounds integer-to-IPv4 conversion', async () => {
+    expect(await runTool('integer-to-ipv4', '0', '', {})).toBe('0.0.0.0')
+    expect(await runTool('integer-to-ipv4', '4294967295', '', {})).toBe('255.255.255.255')
+    await expect(runTool('integer-to-ipv4', '4294967296', '', {})).rejects.toThrow(/integer/i)
+    await expect(runTool('integer-to-ipv4', '-1', '', {})).rejects.toThrow(/integer/i)
+  })
+
+  it('validates IPv6 syntax rather than only allowed characters', async () => {
+    expect(await runTool('ipv6-validator', '2001:db8::1', '', {})).toBe('Valid IPv6 address.')
+    expect(await runTool('ipv6-validator', '::::', '', {})).toBe('Invalid IPv6 address.')
+    expect(await runTool('ipv6-validator', 'not:an:ip', '', {})).toBe('Invalid IPv6 address.')
+  })
+})
+
+describe('production hardening: strict encodings', () => {
+  it('rejects malformed Base64 padding and invalid UTF-8', async () => {
+    await expect(runTool('base64', 'A===', '', { mode: 'decode' })).rejects.toThrow(/Base64/i)
+    await expect(runTool('base64', '/w==', '', { mode: 'decode' })).rejects.toThrow(/UTF-8/i)
+    expect(await runTool('base64', 'RGV2S2l0', '', { mode: 'decode' })).toBe('DevKit')
+  })
+
+  it('rejects malformed hex and invalid UTF-8', async () => {
+    await expect(runTool('hex-converter', '1', '', { mode: 'decode' })).rejects.toThrow(/hexadecimal/i)
+    await expect(runTool('hex-converter', '4g', '', { mode: 'decode' })).rejects.toThrow(/hexadecimal/i)
+    await expect(runTool('hex-converter', 'ff', '', { mode: 'decode' })).rejects.toThrow(/UTF-8/i)
+    expect(await runTool('hex-converter', '4465764b6974', '', { mode: 'decode' })).toBe('DevKit')
+  })
+})
+
+describe('production hardening: resource bounds', () => {
+  it('rejects text expansion above the output budget', async () => {
+    await expect(runTool('text-repeater', 'x'.repeat(900_000), '', { count: '6' })).rejects.toThrow(/output is too large/i)
+  })
+
+  it('rejects invalid chunk sizes', async () => {
+    await expect(runTool('text-splitter', 'abcdef', '', { size: 'Infinity' })).rejects.toThrow(/chunk size/i)
+    expect(await runTool('text-splitter', 'abcdef', '', { size: '2' })).toBe('ab\ncd\nef')
+  })
+})
+
+describe('production hardening: network boundaries', () => {
+  it('handles /31 and /32 host counts correctly', async () => {
+    expect(await runTool('cidr-calculator', '192.0.2.0/31', '', {})).toContain('Usable hosts (traditional): 2')
+    expect(await runTool('cidr-calculator', '192.0.2.1/32', '', {})).toContain('Usable hosts (traditional): 1')
+  })
+
+  it('rejects malformed CIDR prefixes', async () => {
+    await expect(runTool('cidr-calculator', '192.0.2.1/33', '', {})).rejects.toThrow(/prefix/i)
+    await expect(runTool('cidr-calculator', '192.0.2.1/+24', '', {})).rejects.toThrow(/prefix/i)
+    await expect(runTool('wildcard-mask-converter', '192.0.2.1/33', '', {})).rejects.toThrow(/prefix/i)
+  })
+})
+
+describe('production hardening: generated SQL and shell commands', () => {
+  it('quotes SQL identifiers and escapes string literals', async () => {
+    const out = await runTool('sql-insert', '[{"first name":"O\'Reilly"}]', '', { table: 'users' })
+    expect(out).toContain('INSERT INTO "users" ("first name")')
+    expect(out).toContain("'O''Reilly'")
+  })
+
+  it('rejects SQL identifier injection', async () => {
+    await expect(runTool('sql-insert', '[{"id":1}]', '', { table: 'users; DROP TABLE users' })).rejects.toThrow(/identifier/i)
+  })
+
+  it('shell-quotes curl values containing apostrophes', async () => {
+    const input = JSON.stringify({ method: 'POST', url: 'https://example.com/hook', body: "it's safe" })
+    const out = await runTool('curl-builder', input, '', {})
+    expect(out).toContain("'\\''")
+    expect(out).not.toContain("it's safe")
+  })
+
+  it('rejects non-http curl schemes', async () => {
+    await expect(runTool('curl-builder', JSON.stringify({ url: 'file:///etc/passwd' }), '', {})).rejects.toThrow(/HTTP/i)
+  })
+})
