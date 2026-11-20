@@ -221,7 +221,7 @@ describe('production hardening: YAML subset', () => {
     const out = await runTool('json-to-yaml', input, '', {})
     expect(out).toContain('features:')
     expect(out).toContain('- "format"')
-    expect(out).toContain('"enabled": true')
+    expect(out).toContain('enabled: true')
   })
 
   it('parses flat YAML scalar types and quoted strings', async () => {
