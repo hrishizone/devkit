@@ -16,6 +16,10 @@ const mime:Record<string,string>={html:'text/html',css:'text/css',js:'text/javas
 export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{
 const mode=opts.mode||'encode',v=input;
 if(['json-formatter','json-validator','json-lines-formatter','json-lines-validator'].includes(id))return id.startsWith('json-lines')?lines(v).filter(x=>x.trim()).map(x=>pretty(json(x))).join('\n'):pretty(json(v));
+if(id==='xml-minifier')return v.replace(/<!--[\\s\\S]*?-->/g,'').replace(/>\\s+</g,'><').replace(/\\s{2,}/g,' ').trim();
+if(id==='csv-column-selector'){const r=csv(v),keys=(opts.columns||secondary).split(/[ ,]+/).filter(Boolean);return csvOut([r[0].filter((k,i)=>keys.includes(k)||keys.includes(String(i+1))),...r.slice(1).map(row=>row.filter((_,i)=>keys.includes(r[0][i])||keys.includes(String(i+1))) )])}
+if(id==='ipv4-address-class-lookup'){const n=ipN(v),a=n>>>24;return a<=127?'Class A (legacy)':a<=191?'Class B (legacy)':a<=223?'Class C (legacy)':a<=239?'Class D multicast':'Class E reserved'}
+if(id==='webhook-signature-helper'){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(opts.secret||secondary),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(v));return [...new Uint8Array(sig)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 if(id==='json-minifier')return JSON.stringify(json(v));
 if(id==='json-to-yaml'){const walk=(x:any,n=0):string=>x&&typeof x==='object'?Object.entries(x).map(([k,y])=>' '.repeat(n)+k+': '+(y&&typeof y==='object'?'\n'+walk(y,n+2):JSON.stringify(y))).join('\n'):String(x);return walk(json(v))}
 if(id==='yaml-to-json'){const o:any={};for(const l of lines(v)){const m=l.match(/^\s*([^:#]+):\s*(.*)$/);if(m){const x=m[2];o[m[1].trim()]=x==='true'?true:x==='false'?false:/^-?\d+(\.\d+)?$/.test(x)?Number(x):x.replace(/^['"]|['"]$/g,'')}}return pretty(o)}
@@ -156,7 +160,7 @@ if(id==='css-transform-builder')return 'transform: '+(v||'translateX(0)')+';';
 if(id==='css-animation-builder')return `@keyframes fadeIn { from {opacity:0} to {opacity:1} }\n.element { animation: fadeIn ${opts.duration||'300ms'} ease both; }`;
 if(id==='html-input-builder')return `<label>${esc(opts.label||'Label')}</label>\n<input type="${opts.type||'text'}" name="${opts.name||'field'}" placeholder="${esc(v)}">`;
 if(id==='meta-description-counter')return `Characters: ${v.length}\n${v.length<=160?'Within 160 characters.':'Over 160 characters.'}`;
-if(id==='password-strength-estimator'){const s=(v.length>=12?1:0)+(v.length>=16?1:0)+(/[a-z]/.test(v)&&/[A-Z]/.test(v)?1:0)+(\d/.test(v)?1:0)+(/[^A-Za-z0-9]/.test(v)?1:0);return ['Very weak','Weak','Fair','Good','Strong','Very strong'][s]+' (estimated)'}
+if(id==='password-strength-estimator'){const s=(v.length>=12?1:0)+(v.length>=16?1:0)+(/[a-z]/.test(v)&&/[A-Z]/.test(v)?1:0)+(/\d/.test(v)?1:0)+(/[^A-Za-z0-9]/.test(v)?1:0);return ['Very weak','Weak','Fair','Good','Strong','Very strong'][s]+' (estimated)'}
 if(id==='passphrase-generator'){const bank='amber bridge cactus drift ember forest galaxy harbor island jungle kernel lantern meadow nebula ocean planet quartz rocket sunset timber'.split(' ');return Array.from({length:Math.min(20,Number(opts.count)||1)},()=>Array.from(crypto.getRandomValues(new Uint8Array(4)),x=>bank[x%bank.length]).join('-')).join('\n')}
 if(id==='credential-pattern-scanner'){const a=[/AKIA[0-9A-Z]{16}/g,/-----BEGIN [A-Z ]*PRIVATE KEY-----/g,/gh[pousr]_[A-Za-z0-9]{20,}/g,/password\s*[:=]\s*\S+/gi];return a.flatMap(r=>[...v.matchAll(r)].map(m=>'Potential secret: '+m[0].slice(0,8)+'…')).join('\n')||'No common credential patterns found.'}
 if(id==='secret-redactor')return v.replace(/(password|token|secret|api[_-]?key|authorization)(\s*[:=]\s*)([^\s,;]+)/gi,'$1$2[REDACTED]');
