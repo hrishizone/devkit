@@ -239,3 +239,34 @@ describe('production hardening: YAML subset', () => {
     await expect(runTool('yaml-to-json', 'app: one\napp: two', '', {})).rejects.toThrow(/Duplicate YAML key/i)
   })
 })
+
+describe('production hardening: numeric, byte and date boundaries', () => {
+  it('rejects malformed binary and invalid UTF-8 bytes', async () => {
+    await expect(runTool('binary-to-text', '0101', '', {})).rejects.toThrow(/eight/i)
+    await expect(runTool('binary-to-text', '11111111', '', {})).rejects.toThrow(/UTF-8/i)
+    expect(await runTool('binary-to-text', '0100100001101001', '', {})).toBe('Hi')
+  })
+
+  it('uses exact integer arithmetic for octal and hexadecimal conversions', async () => {
+    expect(await runTool('octal-converter', '42', '', { mode: 'encode' })).toBe('52')
+    expect(await runTool('octal-converter', '52', '', { mode: 'decode' })).toBe('42')
+    await expect(runTool('octal-converter', '89', '', { mode: 'decode' })).rejects.toThrow(/octal/i)
+    expect(await runTool('decimal-to-hex', '255', '', {})).toBe('FF')
+    await expect(runTool('decimal-to-hex', '2x', '', {})).rejects.toThrow(/decimal integer/i)
+    expect(await runTool('hex-to-decimal', '0xfffffffffffff', '', {})).toBe('4503599627370495')
+    await expect(runTool('hex-to-decimal', '0xzz', '', {})).rejects.toThrow(/hexadecimal/i)
+  })
+
+  it('counts business days regardless of date order', async () => {
+    const forward = await runTool('business-days-between-dates', '2024-01-01,2024-01-10', '', {})
+    const reverse = await runTool('business-days-between-dates', '2024-01-10,2024-01-01', '', {})
+    expect(reverse).toBe(forward)
+  })
+
+  it('rejects malformed duration strings and invalid seconds', async () => {
+    expect(await runTool('duration-to-seconds', '1d 2h 30m 10s', '', {})).toBe('95410')
+    await expect(runTool('duration-to-seconds', 'abc', '', {})).rejects.toThrow(/duration/i)
+    await expect(runTool('seconds-to-duration', '-1', '', {})).rejects.toThrow(/non-negative/i)
+    await expect(runTool('seconds-to-duration', 'NaN', '', {})).rejects.toThrow(/safe integer/i)
+  })
+})
