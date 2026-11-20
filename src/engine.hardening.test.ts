@@ -110,7 +110,7 @@ describe('production hardening: RFC encodings and CSV parsing', () => {
   it('parses quoted commas and escaped quotes in CSV', async () => {
     const out = await runTool('csv-to-json', 'name,note\nAva,"hello, world"\nBen,"say ""hi"""', '', {})
     expect(out).toContain('hello, world')
-    expect(out).toContain('say "hi"')
+    expect(out).toContain('say \\"hi\\"')
   })
 
   it('rejects malformed CSV quoting', async () => {
