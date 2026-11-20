@@ -185,3 +185,23 @@ describe('complete catalogue execution matrix',()=>{
     expect(result.length).toBeGreaterThan(0)
   })
 })
+
+describe('algorithm-specific correctness',()=>{
+  it('encodes and decodes RFC 4648 Base32',async()=>{
+    expect(await runTool('base32-reference','foo','',{mode:'encode'})).toBe('MZXW6===')
+    expect(await runTool('base32-reference','MZXW6===','',{mode:'decode'})).toBe('foo')
+  })
+  it('encodes Base58 bytes',async()=>{
+    expect(await runTool('base58-encoder','Hello World','',{})).toBe('JxF12TrwUP45BMd')
+  })
+  it('generates RFC 9562 version 7 UUIDs',async()=>{
+    const ids=(await runTool('uuid-v7-generator','','',{count:'3'})).split('\n')
+    expect(ids).toHaveLength(3)
+    for(const id of ids) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  })
+  it('returns the CIDR broadcast and traditional host labels',async()=>{
+    const out=await runTool('cidr-calculator','192.168.1.0/24','',{})
+    expect(out).toContain('Broadcast address: 192.168.1.255')
+    expect(out).toContain('Usable hosts (traditional): 254')
+  })
+})
