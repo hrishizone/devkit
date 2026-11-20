@@ -127,6 +127,7 @@ const sampleForTool = (id: string): [string,string,Record<string,string>] => {
   if (id==='iam-policy-json-formatter') return ['{"Version":"2012-10-17","Statement":[]}','',{}]
   if (id==='systemd-unit-starter') return ['example service','',{}]
   if (id==='environment-variable-diff') return ['A=1\nB=2','A=1\nB=3',{}]
+  if (id==='ipv4-address-class-lookup') return ['192.168.1.1','',{}]
   if (id==='ipv4-validator'||id==='ipv4-private-range-checker'||id==='ipv4-to-integer'||id==='ip-extractor') return ['192.168.1.1','',{}]
   if (id==='integer-to-ipv4') return ['3232235777','',{}]
   if (id==='cidr-calculator'||id==='subnet-range-finder'||id==='ipv4-cidr-to-netmask'||id==='ipv4-broadcast-calculator') return ['192.168.1.0/24','',{}]
