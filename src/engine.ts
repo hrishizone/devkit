@@ -196,7 +196,7 @@ if(id==='git-branch-name-helper')return (opts.type||'feature')+'/'+slug(v);
 if(id==='conventional-commit-builder')return (opts.type||'feat')+(opts.scope?'('+opts.scope+')':'')+': '+v.trim();
 if(id==='semantic-version-helper'){const m=v.match(/(\d+)\.(\d+)\.(\d+)/);if(!m)throw Error('Enter version like 1.2.3');const a=+m[1],b=+m[2],c=+m[3];return `Patch: ${a}.${b}.${c+1}\nMinor: ${a}.${b+1}.0\nMajor: ${a+1}.0.0`}
 if(id==='changelog-starter')return `# Changelog\n\n## [Unreleased]\n### Added\n- ${v||'Describe changes'}\n\n### Changed\n\n### Fixed`;
-if(id==='github-readme-starter')return `# ${v||'Project'}\n\nProject description.\n\n## Installation\n```bash\nnpm install\n```\n\n## Usage\n\n## Contributing\n\n## License`;
+if(id==='github-readme-starter')return `# ${v||'Project'}\n\nProject description.\n\n## Installation\n\`\`\`bash\nnpm install\n\`\`\`\n\n## Usage\n\n## Contributing\n\n## License`;
 if(id==='github-actions-starter')return 'name: CI\non: [push, pull_request]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: {node-version: 22}\n      - run: npm ci\n      - run: npm test';
 if(['git-remote-url-converter','git-remote-ssh-to-https','git-remote-https-to-ssh'].includes(id)){const m=v.match(/(?:https:\/\/github\.com\/|git@github\.com:)([^/]+\/[^/.]+)/);if(!m)throw Error('Enter a GitHub HTTPS or SSH remote.');return id==='git-remote-https-to-ssh'||id==='git-remote-url-converter'&&v.startsWith('https')?'git@github.com:'+m[1]+'.git':'https://github.com/'+m[1]+'.git'}
 if(id==='github-markdown-preview')return v;
