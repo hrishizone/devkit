@@ -26,3 +26,17 @@ describe('additional utilities',()=>{
   it('redacts likely secrets',async()=>expect(await runTool('secret-redactor','api_key=abc123','',{})).toContain('[REDACTED]'))
   it('creates conventional commits',async()=>expect(await runTool('conventional-commit-builder','add login','',{type:'feat',scope:'auth'})).toBe('feat(auth): add login'))
 })
+
+
+describe('expanded utility coverage',()=>{
+  it('converts JSON to YAML',async()=>expect(await runTool('json-to-yaml','{"app":"DevKit","enabled":true}','',{})).toContain('app:'));
+  it('converts CSV to JSON',async()=>expect(await runTool('csv-to-json','name,role\nAva,Engineer','',{})).toContain('Engineer'));
+  it('minifies XML',async()=>expect(await runTool('xml-minifier','<root>  <item> ok </item> </root>','',{})).toBe('<root><item> ok </item></root>'));
+  it('parses AWS ARNs',async()=>expect(await runTool('aws-arn-parser','arn:aws:s3:::my-bucket','',{})).toContain('s3'));
+  it('converts IPv4 to integer',async()=>expect(await runTool('ipv4-to-integer','127.0.0.1','',{})).toBe('2130706433'));
+  it('creates conventional commits',async()=>expect(await runTool('conventional-commit-builder','add login','',{type:'feat',scope:'auth'})).toBe('feat(auth): add login'));
+  it('builds Docker run commands',async()=>expect(await runTool('docker-run','nginx:latest','',{ports:'8080:80'})).toContain('-p 8080:80'));
+  it('sorts text lines',async()=>expect(await runTool('line-sorter','zebra\napple','',{})).toBe('apple\nzebra'));
+  it('extracts selected CSV columns',async()=>expect(await runTool('csv-column-selector','name,role\nAva,Engineer','',{columns:'name'})).toContain('Ava'));
+  it('calculates webhook HMAC signatures',async()=>expect(await runTool('webhook-signature-helper','payload','',{secret:'key'})).toHaveLength(64));
+});
