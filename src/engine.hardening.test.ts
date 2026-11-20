@@ -138,7 +138,7 @@ describe('production hardening: parser and regex safety', () => {
 })
 
 describe('production hardening: JWT and secure generators', () => {
-  const encodePart = (value: unknown) => btoa(JSON.stringify(value)).replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_')
+  const encodePart = (value: unknown) => btoa(JSON.stringify(value)).replace(/=/g, '').replaceAll('+', '-').replaceAll('/', '_')
   const token = (payload: unknown, signature = 'sig') => encodePart({ alg: 'none', typ: 'JWT' }) + '.' + encodePart(payload) + '.' + signature
 
   it('requires exactly three JWT segments and valid JSON objects', async () => {
