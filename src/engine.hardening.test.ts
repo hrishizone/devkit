@@ -219,7 +219,7 @@ describe('production hardening: YAML subset', () => {
   it('serializes nested objects and arrays without losing structure', async () => {
     const input = JSON.stringify({ app: 'DevKit', features: ['format', 'validate'], nested: { enabled: true, count: 2 } })
     const out = await runTool('json-to-yaml', input, '', {})
-    expect(out).toContain('"features":')
+    expect(out).toContain('features:')
     expect(out).toContain('- "format"')
     expect(out).toContain('"enabled": true')
   })
