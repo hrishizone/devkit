@@ -28,7 +28,6 @@ jobs:
           node-version: '22.16.0'
 
       - name: Resolve exact dependency tree
-        if: ${{ hashFiles('package-lock.json') == '' }}
         run: npm install --package-lock-only --ignore-scripts --no-audit
 
       - name: Commit lockfile
