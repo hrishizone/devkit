@@ -88,3 +88,33 @@ describe('production hardening: generated SQL and shell commands', () => {
     await expect(runTool('curl-builder', JSON.stringify({ url: 'file:///etc/passwd' }), '', {})).rejects.toThrow(/HTTP/i)
   })
 })
+
+describe('production hardening: RFC encodings and CSV parsing', () => {
+  it.each([
+    ['f', 'MY======'],
+    ['fo', 'MZXQ===='],
+    ['foo', 'MZXW6==='],
+    ['foob', 'MZXW6YQ='],
+    ['fooba', 'MZXW6YTB'],
+    ['foobar', 'MZXW6YTBOI======'],
+  ])('round-trips RFC 4648 Base32 vector %s', async (plain, encoded) => {
+    expect(await runTool('base32-reference', plain, '', { mode: 'encode' })).toBe(encoded)
+    expect(await runTool('base32-reference', encoded, '', { mode: 'decode' })).toBe(plain)
+  })
+
+  it('rejects invalid Base32 padding and non-canonical bits', async () => {
+    await expect(runTool('base32-reference', 'MZXW6==', '', { mode: 'decode' })).rejects.toThrow(/padding|length/i)
+    await expect(runTool('base32-reference', 'MZXW7===', '', { mode: 'decode' })).rejects.toThrow(/bits/i)
+  })
+
+  it('parses quoted commas and escaped quotes in CSV', async () => {
+    const out = await runTool('csv-to-json', 'name,note\nAva,"hello, world"\nBen,"say ""hi"""', '', {})
+    expect(out).toContain('hello, world')
+    expect(out).toContain('say "hi"')
+  })
+
+  it('rejects malformed CSV quoting', async () => {
+    await expect(runTool('csv-to-json', 'name,note\nAva,"unterminated', '', {})).rejects.toThrow(/unterminated/i)
+    await expect(runTool('csv-to-json', 'name,no"te\nAva,hello', '', {})).rejects.toThrow(/quote/i)
+  })
+})
