@@ -36,7 +36,7 @@ describe('expanded utility coverage',()=>{
   it('parses AWS ARNs',async()=>expect(await runTool('aws-arn-parser','arn:aws:s3:::my-bucket','',{})).toContain('s3'));
   it('converts IPv4 to integer',async()=>expect(await runTool('ipv4-to-integer','127.0.0.1','',{})).toBe('2130706433'));
   it('creates conventional commits',async()=>expect(await runTool('conventional-commit-builder','add login','',{type:'feat',scope:'auth'})).toBe('feat(auth): add login'));
-  it('builds Docker run commands',async()=>expect(await runTool('docker-run','nginx:latest','',{ports:'8080:80'})).toContain('-p 8080:80'));
+  it('builds Docker run commands',async()=>expect(await runTool('docker-run','nginx:latest','',{ports:'8080:80'})).toContain("-p '8080:80'"));
   it('sorts text lines',async()=>expect(await runTool('line-sorter','zebra\napple','',{})).toBe('apple\nzebra'));
   it('extracts selected CSV columns',async()=>expect(await runTool('csv-column-selector','name,role\nAva,Engineer','',{columns:'name'})).toContain('Ava'));
   it('calculates webhook HMAC signatures',async()=>expect(await runTool('webhook-signature-helper','payload','',{secret:'key'})).toHaveLength(64));
@@ -121,7 +121,8 @@ const sampleForTool = (id: string): [string,string,Record<string,string>] => {
   if (id==='kubernetes-deployment-starter'||id==='kubernetes-service-starter') return ['sample-app','',{}]
   if (id==='kubernetes-configmap-builder') return ['ENV=prod\nREGION=ap-south-1','',{}]
   if (id==='kubernetes-label-builder') return ['app=web,team=platform','',{}]
-  if (id==='terraform-variable-builder'||id==='terraform-output-builder'||id==='terraform-resource-address-parser') return ['aws_instance.web.id','',{}]
+  if (id==='terraform-variable-builder'||id==='terraform-output-builder') return ['resource_id','',{}]
+  if (id==='terraform-resource-address-parser') return ['aws_instance.web.id','',{}]
   if (id==='aws-arn-parser') return ['arn:aws:s3:::my-bucket','',{}]
   if (id==='aws-s3-uri-parser'||id==='aws-s3-key-url-encoder') return ['s3://my-bucket/folder/file name.txt','',{}]
   if (id==='iam-policy-json-formatter') return ['{"Version":"2012-10-17","Statement":[]}','',{}]
