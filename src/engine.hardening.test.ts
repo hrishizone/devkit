@@ -182,3 +182,60 @@ describe('production hardening: JSON Pointer and path collisions', () => {
     await expect(runTool('json-unflatten', '{"a":1,"a.b":2}', '', {})).rejects.toThrow(/conflicting/i)
   })
 })
+
+describe('production hardening: generated markup and infrastructure', () => {
+  it('escapes HTML attributes and rejects unsafe input types', async () => {
+    const out = await runTool('html-input-builder', '" onfocus="alert(1)', '', { type: 'text', name: 'search' })
+    expect(out).toContain('&quot;')
+    expect(out).not.toContain('onfocus="alert(1)')
+    await expect(runTool('html-input-builder', 'x', '', { type: 'text\" onfocus=\"x' })).rejects.toThrow(/input type/i)
+  })
+
+  it('rejects executable favicon schemes and escapes URL attributes', async () => {
+    await expect(runTool('favicon-html-builder', 'javascript:alert(1)', '', {})).rejects.toThrow(/executable scheme/i)
+    expect(await runTool('favicon-html-builder', '/icon?a=1&b=2', '', {})).toContain('&amp;')
+  })
+
+  it('quotes Docker command arguments and validates images and ports', async () => {
+    const out = await runTool('docker-run', "nginx:latest", '', { name: "web app", ports: '8080:80' }).catch(e => e.message)
+    expect(out).toMatch(/container name/i)
+    await expect(runTool('docker-run', 'nginx:latest; whoami', '', {})).rejects.toThrow(/Docker image/i)
+    await expect(runTool('docker-port-mapper', '70000:80', '', {})).rejects.toThrow(/65,535/i)
+    expect(await runTool('docker-port-mapper', '8080:80', '', {})).toContain('8080:80')
+  })
+
+  it('validates Kubernetes and Terraform identifiers', async () => {
+    await expect(runTool('kubernetes-deployment-starter', 'My App', '', {})).rejects.toThrow(/DNS labels/i)
+    expect(await runTool('kubernetes-deployment-starter', 'my-app', '', {})).toContain('name: my-app')
+    await expect(runTool('terraform-variable-builder', 'x\" {\n provisioner \"local-exec\" {}\n}', '', {})).rejects.toThrow(/identifiers/i)
+  })
+
+  it('rejects multiline systemd descriptions', async () => {
+    await expect(runTool('systemd-unit-starter', 'Good\nExecStart=/bin/sh', '', {})).rejects.toThrow(/single line/i)
+  })
+})
+
+describe('production hardening: YAML subset', () => {
+  it('serializes nested objects and arrays without losing structure', async () => {
+    const input = JSON.stringify({ app: 'DevKit', features: ['format', 'validate'], nested: { enabled: true, count: 2 } })
+    const out = await runTool('json-to-yaml', input, '', {})
+    expect(out).toContain('"features":')
+    expect(out).toContain('- "format"')
+    expect(out).toContain('"enabled": true')
+  })
+
+  it('parses flat YAML scalar types and quoted strings', async () => {
+    const out = await runTool('yaml-to-json', 'app: DevKit\nenabled: true\ncount: 2\nlabel: "hello: world"', '', {})
+    expect(out).toContain('"enabled": true')
+    expect(out).toContain('"count": 2')
+    expect(out).toContain('hello: world')
+  })
+
+  it('rejects nested YAML instead of silently discarding it', async () => {
+    await expect(runTool('yaml-to-json', 'app:\n  name: DevKit', '', {})).rejects.toThrow(/Nested YAML/i)
+  })
+
+  it('rejects duplicate YAML keys', async () => {
+    await expect(runTool('yaml-to-json', 'app: one\napp: two', '', {})).rejects.toThrow(/Duplicate YAML key/i)
+  })
+})
