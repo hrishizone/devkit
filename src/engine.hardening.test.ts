@@ -159,3 +159,26 @@ describe('production hardening: JWT and secure generators', () => {
     expect(result).toMatch(/^[A-Za-z0-9!@#$%^&*]+$/)
   })
 })
+
+describe('production hardening: JSON Pointer and path collisions', () => {
+  it('supports escaped JSON Pointer tokens and array indices', async () => {
+    expect(await runTool('json-pointer-tester', '{"a/b":[{"~key":"value"}]}', '', { pointer: '/a~1b/0/~0key' })).toContain('value')
+  })
+
+  it('rejects malformed or missing JSON Pointer paths', async () => {
+    await expect(runTool('json-pointer-tester', '{"a":1}', '', { pointer: '/a~2b' })).rejects.toThrow(/escape/i)
+    await expect(runTool('json-pointer-tester', '{"a":1}', '', { pointer: '/missing' })).rejects.toThrow(/does not exist/i)
+    await expect(runTool('json-pointer-tester', '{"a":1}', '', { pointer: 'a' })).rejects.toThrow(/start with/i)
+  })
+
+  it('keeps prototype-like flattened keys as data without mutating prototypes', async () => {
+    const out = await runTool('json-unflatten', '{"__proto__.polluted":true,"safe.value":1}', '', {})
+    expect(out).toContain('"__proto__"')
+    expect(out).toContain('"polluted": true')
+    expect(({} as any).polluted).toBeUndefined()
+  })
+
+  it('rejects conflicting flattened paths', async () => {
+    await expect(runTool('json-unflatten', '{"a":1,"a.b":2}', '', {})).rejects.toThrow(/conflicting/i)
+  })
+})
