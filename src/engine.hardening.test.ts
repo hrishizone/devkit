@@ -118,3 +118,21 @@ describe('production hardening: RFC encodings and CSV parsing', () => {
     await expect(runTool('csv-to-json', 'name,no"te\nAva,hello', '', {})).rejects.toThrow(/quote/i)
   })
 })
+
+describe('production hardening: parser and regex safety', () => {
+  it('rejects excessive JSON nesting and node counts', async () => {
+    await expect(runTool('json-formatter', '['.repeat(101) + '0' + ']'.repeat(101), '', {})).rejects.toThrow(/nesting/i)
+  })
+
+  it('handles regex flags without the global flag', async () => {
+    expect(await runTool('regex-tester', 'Alpha beta ALPHA', 'alpha', { flags: 'i' })).toContain('Alpha')
+  })
+
+  it('rejects common nested-quantifier ReDoS patterns', async () => {
+    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a+)+$', { flags: 'g' })).rejects.toThrow(/quantifier/i)
+  })
+
+  it('bounds regex pattern length', async () => {
+    await expect(runTool('regex-tester', 'abc', 'a'.repeat(257), { flags: 'g' })).rejects.toThrow(/too long/i)
+  })
+})
