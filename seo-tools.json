@@ -452,7 +452,7 @@
   {
     "id": "email-extractor",
     "name": "Email Extractor",
-    "description": "Find email-like strings in text.",
+    "description": "Extract common ASCII email-like patterns from text; candidates are not verified for validity or delivery.",
     "category": "Text"
   },
   {
@@ -1088,13 +1088,13 @@
   {
     "id": "email-validator",
     "name": "Email Validator",
-    "description": "Check common email address syntax.",
+    "description": "Validate common ASCII dot-atom email syntax; quoted local parts, internationalized local parts and deliverability are not checked.",
     "category": "Text"
   },
   {
     "id": "phone-number-cleaner",
     "name": "Phone Number Cleaner",
-    "description": "Normalize phone number punctuation.",
+    "description": "Normalize phone text to digits with at most one leading plus; does not validate country-specific numbering plans.",
     "category": "Text"
   },
   {
