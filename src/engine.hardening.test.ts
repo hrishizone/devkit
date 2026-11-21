@@ -661,12 +661,19 @@ describe('production hardening: SQL dialect escaping', () => {
     const sql = await runTool('json-to-postgresql', JSON.stringify([{ name: "O'Brien" }]), '', { table: 'users' })
     expect(sql).toContain("convert_from(decode('4f27427269656e','hex'),'UTF8')")
   })
-  it('encodes PostgreSQL backslashes, NUL and Unicode as UTF-8 hex', async () => {
+  it('encodes PostgreSQL backslashes and Unicode as UTF-8 hex', async () => {
     const values = [{ value: "\\' OR 1=1 --" }, { value: 'café 😀' }, { value: '' }]
     const sql = await runTool('json-to-postgresql', JSON.stringify(values), '', { table: 'events' })
     expect(sql).toContain("convert_from(decode('5c27204f5220313d31202d2d','hex'),'UTF8')")
     expect(sql).toContain("convert_from(decode('636166c3a920f09f9880','hex'),'UTF8')")
     expect(sql).toContain("''")
   })
+  it('rejects NUL bytes in PostgreSQL and generic SQL text literals', async () => {
+    await expect(runTool('json-to-postgresql', JSON.stringify([{ value: '\\u0000' }]), '', {})).rejects.toThrow(/NUL bytes/i)
+    await expect(runTool('sql-literal-escaper', '\\u0000', '', {})).rejects.toThrow(/NUL bytes/i)
+    const mysql = await runTool('json-to-mysql', JSON.stringify([{ value: '\\u0000' }]), '', {})
+    expect(mysql).toContain('CONVERT(0x00 USING utf8mb4)')
+  })
+
 
 })
