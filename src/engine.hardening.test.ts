@@ -498,6 +498,8 @@ describe('production hardening: CSS, HTTP and shell command generators', () => {
   })
 
   it('validates chmod modes and MAC addresses', async () => {
+    expect(await runTool('chmod', '755', '', {})).toBe('chmod 755 your-file')
+    expect(await runTool('chmod', '0755', '', {})).toBe('chmod 0755 your-file')
     await expect(runTool('chmod', '999', '', {})).rejects.toThrow(/symbolic rwx/i)
     await expect(runTool('chmod', '7778', '', {})).rejects.toThrow(/symbolic rwx/i)
     expect(await runTool('mac-address-formatter', '00:1A:2B:3C:4D:5E', '', {})).toBe('00:1a:2b:3c:4d:5e')
