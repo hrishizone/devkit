@@ -659,6 +659,14 @@ describe('production hardening: SQL dialect escaping', () => {
 
   it('keeps standard SQL apostrophe escaping intact', async () => {
     const sql = await runTool('json-to-postgresql', JSON.stringify([{ name: "O'Brien" }]), '', { table: 'users' })
-    expect(sql).toContain("'O''Brien'")
+    expect(sql).toContain("convert_from(decode('4f27427269656e','hex'),'UTF8')")
   })
+  it('encodes PostgreSQL backslashes, NUL and Unicode as UTF-8 hex', async () => {
+    const values = [{ value: "\\' OR 1=1 --" }, { value: 'café 😀' }, { value: '' }]
+    const sql = await runTool('json-to-postgresql', JSON.stringify(values), '', { table: 'events' })
+    expect(sql).toContain("convert_from(decode('5c27204f5220313d31202d2d','hex'),'UTF8')")
+    expect(sql).toContain("convert_from(decode('636166c3a920f09f9880','hex'),'UTF8')")
+    expect(sql).toContain("''")
+  })
+
 })
