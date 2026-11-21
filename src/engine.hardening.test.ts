@@ -709,3 +709,25 @@ describe('production hardening: GitHub, logs, ports and SemVer', () => {
     await expect(runTool('semantic-version-helper', '1'.repeat(257), '', {})).rejects.toThrow(/too long/i)
   })
 })
+
+describe('production hardening: CIDR boundary prefixes', () => {
+  it('handles /0, /31 and /32 address and host counts correctly', async () => {
+    const zero = await runTool('cidr-calculator', '0.0.0.0/0', '', {})
+    expect(zero).toContain('Total addresses: 4294967296')
+    expect(zero).toContain('Usable hosts: 4294967294')
+    expect(zero).toContain('Broadcast address: 255.255.255.255')
+    const pointToPoint = await runTool('cidr-calculator', '192.0.2.10/31', '', {})
+    expect(pointToPoint).toContain('Total addresses: 2')
+    expect(pointToPoint).toContain('Usable hosts: 2')
+    const host = await runTool('cidr-calculator', '192.0.2.10/32', '', {})
+    expect(host).toContain('Total addresses: 1')
+    expect(host).toContain('Usable hosts: 1')
+    expect(host).toContain('Broadcast address: 192.0.2.10')
+  })
+
+  it('rejects malformed prefixes and octets at network boundaries', async () => {
+    await expect(runTool('cidr-calculator', '192.0.2.1/33', '', {})).rejects.toThrow(/prefix/i)
+    await expect(runTool('cidr-calculator', '192.0.2.256/24', '', {})).rejects.toThrow(/IPv4/i)
+    await expect(runTool('cidr-calculator', '192.0.2.1/024', '', {})).rejects.toThrow(/prefix/i)
+  })
+})
