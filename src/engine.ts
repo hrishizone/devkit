@@ -29,8 +29,9 @@ const sqlIdentifier=(value:string,dialect='standard')=>{const parts=value.split(
 const statuses:Record<string,string>={'200':'OK','201':'Created','204':'No Content','301':'Moved Permanently','302':'Found','304':'Not Modified','400':'Bad Request','401':'Unauthorized','403':'Forbidden','404':'Not Found','405':'Method Not Allowed','409':'Conflict','422':'Unprocessable Content','429':'Too Many Requests','500':'Internal Server Error','502':'Bad Gateway','503':'Service Unavailable','504':'Gateway Timeout'};
 const mime:Record<string,string>={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',xml:'application/xml',txt:'text/plain',csv:'text/csv',pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',svg:'image/svg+xml',zip:'application/zip',yaml:'application/yaml'};
 async function runToolInternal(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{
-if(typeof id!=='string'||!id)throw Error('Select a valid tool.');
+if(typeof id!=='string'||!id||id.length>128)throw Error('Select a valid tool.');
 if(typeof input!=='string'||typeof secondary!=='string'||!opts||typeof opts!=='object'||Array.isArray(opts))throw Error('Invalid tool input.');
+const optionEntries=Object.entries(opts);if(optionEntries.length>100||optionEntries.some(([key,value])=>!key||key.length>128||typeof value!=='string'||value.length>100000))throw Error('Tool options are invalid or exceed the supported limits.');
 const MAX_INPUT=1_000_000,MAX_OUTPUT=5_000_000;
 if(input.length>MAX_INPUT||secondary.length>MAX_INPUT)throw Error('Input is too large. Maximum is 1,000,000 characters per field.');
 const mode=opts.mode||'encode',v=input;
@@ -253,4 +254,4 @@ if(id==='log-level-filter'){if(v.length>200000)throw Error('Log input is too lar
 if(id==='port-number-reference')return v+': '+(({22:'SSH',53:'DNS',80:'HTTP',443:'HTTPS',3306:'MySQL',5432:'PostgreSQL',6379:'Redis',27017:'MongoDB'} as Record<number,string>)[Number(v)]||'Port reference');
 throw Error('No implementation exists for this tool yet.');
 }
-export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
+export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(typeof result!=='string')throw Error('Tool returned an invalid result.');if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
