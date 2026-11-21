@@ -66,6 +66,17 @@ When adding or removing a tool, update both `src/tools.ts` and `seo-tools.json`;
 
 Vercel installs with `npm ci`. Production deployments remain connected to `main`. Automatic preview deployments are intentionally disabled for the temporary `production-hardening-pass-1` branch while it is being validated.
 
+## Runtime limits
+
+- Primary and secondary input fields: 1,000,000 characters each
+- Tool options: at most 100 keys; each key is limited to 128 characters and each value to 100,000 characters
+- Tool output: 5,000,000 characters maximum
+- JSON parsing: maximum depth 100 and 100,000 visited values
+- Regex tester: pattern length 128, input length 100,000 and 10,000 matches maximum
+- UUID generation: 1–100 per request; passphrase generation: 1–20 per request
+
+These are application-level limits, not a substitute for browser memory limits or independent validation of generated commands and configuration.
+
 ## Security controls
 
 - Content Security Policy without `unsafe-inline` script or style permissions
