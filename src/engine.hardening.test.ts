@@ -603,3 +603,16 @@ describe('production hardening: runtime argument contracts', () => {
     await expect(runTool('x'.repeat(129), '', '', {})).rejects.toThrow(/valid tool/i)
   })
 })
+
+describe('production hardening: Base64 text decoding', () => {
+  it('round-trips UTF-8 text and supports the empty string', async () => {
+    const encoded = await runTool('base64', 'DevKit 😀', '', { mode: 'encode' })
+    expect(await runTool('base64', encoded, '', { mode: 'decode' })).toBe('DevKit 😀')
+    expect(await runTool('base64', '', '', { mode: 'decode' })).toBe('')
+  })
+
+  it('rejects malformed Base64 padding and non-UTF-8 byte sequences', async () => {
+    await expect(runTool('base64', 'SGVsbG8', '', { mode: 'decode' })).rejects.toThrow(/Invalid Base64/i)
+    await expect(runTool('base64', '/w==', '', { mode: 'decode' })).rejects.toThrow(/valid UTF-8/i)
+  })
+})
