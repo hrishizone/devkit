@@ -541,3 +541,17 @@ describe('production hardening: AWS, SQL and Git generators', () => {
     expect(await runTool('semantic-version-helper', '1.2.3', '', {})).toContain('Major: 2.0.0')
   })
 })
+
+describe('production hardening: entropy and time parsing', () => {
+  it('generates passphrases with at least 112 bits of word-selection entropy', async () => {
+    const phrase = await runTool('passphrase-generator', '', '', { count: '1' })
+    expect(phrase.split('-')).toHaveLength(16)
+    expect(phrase).toMatch(/^[a-z]+(?:-[a-z]+){15}$/)
+  })
+
+  it('supports negative Unix timestamps and rejects invalid timezone dates', async () => {
+    expect(await runTool('timestamp', '-1', '', {})).toContain('1969-12-31T23:59:59.000Z')
+    expect(await runTool('unix-milliseconds-converter', '-1', '', {})).toContain('Milliseconds: -1')
+    await expect(runTool('timezone-offset-helper', 'not-a-date', '', {})).rejects.toThrow(/valid date/i)
+  })
+})
