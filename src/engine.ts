@@ -243,19 +243,3 @@ if(id==='port-number-reference'){const value=v.trim(),port=Number(value);if(!/^\
 throw Error('No implementation exists for this tool yet.');
 }
 export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(typeof result!=='string')throw Error('Tool returned an invalid result.');if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
-),m=v.trim().match(pattern);if(!m)throw Error('Enter a valid Semantic Version 2.0.0 value such as 1.2.3 or 1.2.3-beta.1+build.2.');const a=BigInt(m[1]),b=BigInt(m[2]),c=BigInt(m[3]);return 'Patch: '+a+'.'+b+'.'+(c+1n)+'\nMinor: '+a+'.'+(b+1n)+'.0\nMajor: '+(a+1n)+'.0.0'}
-if(id==='changelog-starter')return `# Changelog\n\n## [Unreleased]\n### Added\n- ${v||'Describe changes'}\n\n### Changed\n\n### Fixed`;
-if(id==='github-readme-starter')return `# ${v||'Project'}\n\nProject description.\n\n## Installation\n\`\`\`bash\nnpm install\n\`\`\`\n\n## Usage\n\n## Contributing\n\n## License`;
-if(id==='github-actions-starter')return 'name: CI\non: [push, pull_request]\npermissions:\n  contents: read\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout\n        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4\n      - name: Set up Node.js\n        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4\n        with:\n          node-version: \'22.16.0\'\n          cache: npm\n      - run: npm ci\n      - run: npm run build';
-if(['git-remote-url-converter','git-remote-ssh-to-https','git-remote-https-to-ssh'].includes(id)){const m=v.match(/(?:https:\/\/github\.com\/|git@github\.com:)([^/]+\/[^/.]+)/);if(!m)throw Error('Enter a GitHub HTTPS or SSH remote.');return id==='git-remote-https-to-ssh'||id==='git-remote-url-converter'&&v.startsWith('https')?'git@github.com:'+m[1]+'.git':'https://github.com/'+m[1]+'.git'}
-if(id==='github-markdown-preview')return v;
-if(id==='git-command-cheat-sheet')return 'git status\ngit add .\ngit commit -m "feat: describe change"\ngit pull --rebase origin main\ngit push -u origin HEAD\ngit log --oneline --graph --decorate';
-if(id==='github-issue-template')return `## Description\n${v||'Describe the issue'}\n\n## Steps to reproduce\n1.\n\n## Expected behavior\n\n## Actual behavior`;
-if(id==='pull-request-template')return `## Summary\n${v||'Describe change'}\n\n## Changes\n-\n\n## Testing\n- [ ] Tests pass`;
-if(id==='git-tag-formatter')return 'v'+v.trim().replace(/^v/,'');
-if(id==='lorem')return Array.from({length:Math.min(20,Math.max(1,Number(opts.count)||3))},()=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.').join('\n\n');
-if(id==='log-level-filter'){if(v.length>200000)throw Error('Log input is too large (maximum 200,000 characters).');const pattern=opts.level||'ERROR|WARN|FATAL',regex=compileSafeRegex(pattern,'i');return lines(v).filter(x=>regex.test(x)).join('\n')}
-if(id==='port-number-reference'){const value=v.trim(),port=Number(value);if(!/^\\d{1,5}$/.test(value)||!Number.isInteger(port)||port<1||port>65535)throw Error('Port must be an integer from 1 to 65,535.');return port+': '+(({22:'SSH',53:'DNS',80:'HTTP',443:'HTTPS',3306:'MySQL',5432:'PostgreSQL',6379:'Redis',27017:'MongoDB'} as Record<number,string>)[port]||'Port reference')}
-throw Error('No implementation exists for this tool yet.');
-}
-export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(typeof result!=='string')throw Error('Tool returned an invalid result.');if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
