@@ -15,12 +15,12 @@ describe('DevKit interface',()=>{
 
 it('exposes JSON Pointer input and executes the selected path',async()=>{
   const user=userEvent.setup()
-  render(<App />)
+  const {container}=render(<App />)
   await user.type(screen.getByLabelText(/search tools and categories/i),'JSON Pointer')
   await user.click(screen.getByText('JSON Pointer Tester'))
   await user.type(screen.getByLabelText('JSON Pointer'),'/user/name')
   await user.click(screen.getByRole('button',{name:/run tool/i}))
-  await waitFor(()=>expect(screen.getByText('Ava')).toBeInTheDocument())
+  await waitFor(()=>expect(container.querySelector('pre')).toHaveTextContent('"Ava"'))
 })
 
 it('loads a safe default regex pattern and excludes disabled SHA-1 hashing',async()=>{
