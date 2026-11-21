@@ -744,6 +744,6 @@ describe('production hardening: email and phone input validation', () => {
   it('normalizes a single leading plus and rejects inputs without digits', async () => {
     expect(await runTool('phone-number-cleaner', '+1 (415) 555-2671', '', {})).toBe('+14155552671')
     expect(await runTool('phone-number-cleaner', '++44 20 1234 5678', '', {})).toBe('+442012345678')
-    expect(await runTool('phone-number-cleaner', 'call me', '', {})).rejects.toThrow(/containing digits/i)
+    await expect(runTool('phone-number-cleaner', 'call me', '', {})).rejects.toThrow(/containing digits/i)
   })
 })
