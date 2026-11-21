@@ -192,7 +192,7 @@ describe('production hardening: generated markup and infrastructure', () => {
   })
 
   it('rejects executable favicon schemes and escapes URL attributes', async () => {
-    await expect(runTool('favicon-html-builder', 'javascript:alert(1)', '', {})).rejects.toThrow(/executable scheme/i)
+    await expect(runTool('favicon-html-builder', 'javascript:alert(1)', '', {})).rejects.toThrow(/HTTP\(S\) or a relative path/i)
     expect(await runTool('favicon-html-builder', '/icon?a=1&b=2', '', {})).toContain('&amp;')
   })
 
