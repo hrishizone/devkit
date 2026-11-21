@@ -706,5 +706,6 @@ describe('production hardening: GitHub, logs, ports and SemVer', () => {
     await expect(runTool('semantic-version-helper', '01.2.3', '', {})).rejects.toThrow(/Semantic Version/i)
     await expect(runTool('semantic-version-helper', '1.2.3-01', '', {})).rejects.toThrow(/Semantic Version/i)
     await expect(runTool('semantic-version-helper', '1.2.3-alpha..beta', '', {})).rejects.toThrow(/Semantic Version/i)
+    await expect(runTool('semantic-version-helper', '1'.repeat(257), '', {})).rejects.toThrow(/too long/i)
   })
 })
