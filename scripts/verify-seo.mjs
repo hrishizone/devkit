@@ -20,7 +20,7 @@ for (const tool of tools) {
   const canonical = `<link rel="canonical" href="${base}/tools/${tool.id}" />`
   if (!html.includes(canonical)) throw new Error(`Incorrect canonical URL: ${tool.id}`)
   if (html.includes('devkit.example')) throw new Error(`Placeholder domain found in SEO page: ${tool.id}`)
-  const match = html.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/)
+  const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
   if (!match) throw new Error(`Missing JSON-LD metadata: ${tool.id}`)
   let structured
   try { structured = JSON.parse(match[1]) } catch { throw new Error(`Invalid JSON-LD metadata: ${tool.id}`) }
