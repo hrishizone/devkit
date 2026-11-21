@@ -472,3 +472,72 @@ describe('production hardening: generated secrets and redaction', () => {
     expect(out).toContain('[REDACTED PRIVATE KEY]')
   })
 })
+
+describe('production hardening: CSS, HTTP and shell command generators', () => {
+  it('rejects CSS declaration injection across generators', async () => {
+    await expect(runTool('css-gradient', 'red); background:url(https://evil.test)', '', {})).rejects.toThrow(/CSS named color/i)
+    await expect(runTool('css-box-shadow-builder', '', '', { x: '0px; color:red' })).rejects.toThrow(/CSS length/i)
+    await expect(runTool('css-flexbox-playground', '', '', { direction: 'row; color:red' })).rejects.toThrow(/valid flex/i)
+    await expect(runTool('css-grid-builder', '1fr; color:red', '', {})).rejects.toThrow(/safe grid tracks/i)
+    await expect(runTool('css-transform-builder', 'translateX(0);color:red', '', {})).rejects.toThrow(/supported transform/i)
+    await expect(runTool('css-animation-builder', '', '', { duration: '1s; color:red' })).rejects.toThrow(/Animation duration/i)
+    await expect(runTool('css-border-radius-builder', '8px; color:red', '', {})).rejects.toThrow(/CSS length/i)
+  })
+
+  it('generates valid CSS values with real newlines', async () => {
+    expect(await runTool('css-grid-builder', 'repeat(3, 1fr)', '', {})).toContain('grid-template-columns: repeat(3, 1fr)')
+    expect(await runTool('css-transform-builder', 'translateX(10px)', '', {})).toBe('transform: translateX(10px);')
+    expect(await runTool('css-flexbox-playground', '', '', {})).toContain('\n display: flex;')
+    expect(await runTool('css-animation-builder', '', '', {})).toContain('\n.element')
+  })
+
+  it('rejects curl header injection and embedded URL credentials', async () => {
+    await expect(runTool('curl-builder', JSON.stringify({ url: 'https://user:pass@example.com' }), '', {})).rejects.toThrow(/without embedded credentials/i)
+    await expect(runTool('curl-builder', JSON.stringify({ url: 'https://example.com', headers: { 'X-Test': 'ok\r\nX-Evil: yes' } }), '', {})).rejects.toThrow(/CR, LF/i)
+    expect(await runTool('curl-builder', JSON.stringify({ url: 'https://example.com', headers: { 'X-Test': 'ok' } }), '', {})).toContain("-H 'X-Test: ok'")
+  })
+
+  it('validates chmod modes and MAC addresses', async () => {
+    await expect(runTool('chmod', '999', '', {})).rejects.toThrow(/symbolic rwx/i)
+    await expect(runTool('chmod', '7778', '', {})).rejects.toThrow(/symbolic rwx/i)
+    expect(await runTool('mac-address-formatter', '00:1A:2B:3C:4D:5E', '', {})).toBe('00:1a:2b:3c:4d:5e')
+    await expect(runTool('mac-address-formatter', 'zz-1A-2B-3C-4D-5E', '', {})).rejects.toThrow(/valid 12-digit MAC/i)
+  })
+
+  it('validates RGB channel bounds', async () => {
+    expect(await runTool('rgb-to-hex', 'rgb(255, 0, 16)', '', {})).toBe('#ff0010')
+    await expect(runTool('rgb-to-hex', 'rgb(256, 0, 16)', '', {})).rejects.toThrow(/0 to 255/i)
+    await expect(runTool('rgb-to-hex', 'rgb(1,2,3);background:red', '', {})).rejects.toThrow(/HEX|RGB/i)
+  })
+})
+
+describe('production hardening: AWS, SQL and Git generators', () => {
+  it('validates S3 bucket names and safely encodes keys', async () => {
+    expect(await runTool('aws-s3-key-url-encoder', 's3://my-bucket/folder/file name.txt', '', {})).toContain('https://s3.amazonaws.com/my-bucket/folder/file%20name.txt')
+    await expect(runTool('aws-s3-uri-parser', 's3://Bad_Bucket/key', '', {})).rejects.toThrow(/S3 bucket name/i)
+    await expect(runTool('aws-s3-uri-parser', 'https://evil.test/bucket/key', '', {})).rejects.toThrow(/s3:\/\//i)
+  })
+
+  it('rejects malformed ARNs', async () => {
+    await expect(runTool('aws-arn-parser', 'arn:aws:s3:region:not-an-account:bucket', '', {})).rejects.toThrow(/valid ARN/i)
+  })
+
+  it('serializes JSON SQL values and validates column identifiers', async () => {
+    const sql = await runTool('sql-insert', '[{"name":"Ada","meta":{"active":true}}]', '', { table: 'users' })
+    expect(sql).toContain('{"active":true}')
+    await expect(runTool('sql-column-list-builder', 'id\nname; DROP TABLE users', '', {})).rejects.toThrow(/valid SQL identifier/i)
+  })
+
+  it('rejects malformed tabular data in SQL-to-JSON conversion', async () => {
+    await expect(runTool('sql-to-json', 'name\tname\nAda\tBen', '', {})).rejects.toThrow(/unique non-empty headers/i)
+    await expect(runTool('sql-to-json', 'name\trole\nAda', '', {})).rejects.toThrow(/consistent column counts/i)
+  })
+
+  it('validates Git branch, commit and semantic-version inputs', async () => {
+    await expect(runTool('git-branch-name-helper', 'Add login', '', { type: 'feature;rm -rf' })).rejects.toThrow(/valid branch type/i)
+    await expect(runTool('conventional-commit-builder', 'add login', '', { type: 'feat\nfix', scope: 'auth' })).rejects.toThrow(/valid commit type/i)
+    expect(await runTool('conventional-commit-builder', 'add login\nBREAKING CHANGE: x', '', { type: 'feat', scope: 'auth' })).toBe('feat(auth): add login BREAKING CHANGE: x')
+    await expect(runTool('semantic-version-helper', 'v1.2.3junk', '', {})).rejects.toThrow(/semantic version/i)
+    expect(await runTool('semantic-version-helper', '1.2.3', '', {})).toContain('Major: 2.0.0')
+  })
+})
