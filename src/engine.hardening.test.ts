@@ -308,19 +308,19 @@ describe('production hardening: data format and credential safety', () => {
 
 describe('production hardening: HTTP header injection', () => {
   it('rejects CRLF in header values and malformed MIME types', async () => {
-    await expect(runTool('content-type-builder', 'application/json\r\nX-Evil: yes', '', {})).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('content-type-builder', 'application/json\r\nX-Evil: yes', '', {})).rejects.toThrow(/control characters/i)
     await expect(runTool('content-type-builder', 'not-a-mime-type', '', {})).rejects.toThrow(/MIME/i)
     expect(await runTool('content-type-builder', 'application/json; charset=utf-8', '', {})).toBe('Content-Type: application/json; charset=utf-8')
   })
 
   it('validates bearer tokens and basic credentials', async () => {
-    await expect(runTool('bearer-header-builder', 'abc\r\nX-Evil: yes', '', {})).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('bearer-header-builder', 'abc\r\nX-Evil: yes', '', {})).rejects.toThrow(/control characters/i)
     expect(await runTool('bearer-header-builder', 'eyJhbGciOiJIUzI1NiJ9.signature', '', {})).toContain('Bearer eyJ')
     await expect(runTool('http-basic-auth-builder', 'username-only', '', {})).rejects.toThrow(/username:password/i)
   })
 
   it('validates CORS origins and methods', async () => {
-    await expect(runTool('cors-header-guide', '', '', { origin: 'https://example.com\r\nX-Evil: yes' })).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('cors-header-guide', '', '', { origin: 'https://example.com\r\nX-Evil: yes' })).rejects.toThrow(/control characters/i)
     await expect(runTool('cors-header-guide', '', '', { origin: 'javascript:alert(1)' })).rejects.toThrow(/HTTP\(S\) scheme/i)
     expect(await runTool('cors-header-guide', '', '', { origin: 'https://example.com' })).toContain('Access-Control-Allow-Origin: https://example.com')
   })
@@ -475,7 +475,7 @@ describe('production hardening: generated secrets and redaction', () => {
 
 describe('production hardening: CSS, HTTP and shell command generators', () => {
   it('rejects CSS declaration injection across generators', async () => {
-    await expect(runTool('css-gradient', 'red); background:url(https://evil.test)', '', {})).rejects.toThrow(/CSS named color/i)
+    await expect(runTool('css-gradient', 'red); background:url(https://evil.test)', '', {})).rejects.toThrow(/CSS color function|CSS named color/i)
     await expect(runTool('css-box-shadow-builder', '', '', { x: '0px; color:red' })).rejects.toThrow(/CSS length/i)
     await expect(runTool('css-flexbox-playground', '', '', { direction: 'row; color:red' })).rejects.toThrow(/valid flex/i)
     await expect(runTool('css-grid-builder', '1fr; color:red', '', {})).rejects.toThrow(/safe grid tracks/i)
@@ -493,7 +493,7 @@ describe('production hardening: CSS, HTTP and shell command generators', () => {
 
   it('rejects curl header injection and embedded URL credentials', async () => {
     await expect(runTool('curl-builder', JSON.stringify({ url: 'https://user:pass@example.com' }), '', {})).rejects.toThrow(/without embedded credentials/i)
-    await expect(runTool('curl-builder', JSON.stringify({ url: 'https://example.com', headers: { 'X-Test': 'ok\r\nX-Evil: yes' } }), '', {})).rejects.toThrow(/CR, LF/i)
+    await expect(runTool('curl-builder', JSON.stringify({ url: 'https://example.com', headers: { 'X-Test': 'ok\r\nX-Evil: yes' } }), '', {})).rejects.toThrow(/control characters/i)
     expect(await runTool('curl-builder', JSON.stringify({ url: 'https://example.com', headers: { 'X-Test': 'ok' } }), '', {})).toContain("-H 'X-Test: ok'")
   })
 
