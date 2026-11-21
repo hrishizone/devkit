@@ -47,5 +47,10 @@
       ]
     }
   ],
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "git": {
+    "deploymentEnabled": {
+      "production-hardening-pass-1": false
+    }
+  }
 }
