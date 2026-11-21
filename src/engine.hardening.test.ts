@@ -379,7 +379,7 @@ describe('production hardening: code generation and structural JSON', () => {
 
 describe('production hardening: regex, HMAC and hash algorithms', () => {
   it('rejects quantified groups and dangerous log filter patterns', async () => {
-    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a|aa)+).rejects.toThrow(/Quantified groups/i)
+    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a|aa)+$', { flags: 'g' })).rejects.toThrow(/Quantified groups/i)
     await expect(runTool('log-level-filter', 'ERROR hello', '', { level: '(a|aa)+$' })).rejects.toThrow(/Quantified groups/i)
   })
 
