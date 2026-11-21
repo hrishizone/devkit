@@ -648,3 +648,17 @@ describe('production hardening: cloud, credentials and protocol edge cases', () 
     expect((await runTool('uuid-generator', '', '', { count: '2' })).split('\n')).toHaveLength(2)
   })
 })
+
+describe('production hardening: SQL dialect escaping', () => {
+  it('encodes MySQL string values as UTF-8 hex literals', async () => {
+    const value = "\\' OR 1=1 --"
+    const sql = await runTool('json-to-mysql', JSON.stringify([{ name: value }]), '', { table: 'users' })
+    expect(sql).toContain('CONVERT(0x5c27204f5220313d31202d2d USING utf8mb4)')
+    expect(sql).not.toContain("'\\'' OR 1=1")
+  })
+
+  it('keeps standard SQL apostrophe escaping intact', async () => {
+    const sql = await runTool('json-to-postgresql', JSON.stringify([{ name: "O'Brien" }]), '', { table: 'users' })
+    expect(sql).toContain("'O''Brien'")
+  })
+})
