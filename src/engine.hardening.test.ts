@@ -464,8 +464,8 @@ describe('production hardening: generated secrets and redaction', () => {
   it('redacts complete authorization credentials and private keys', async () => {
     const input = 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.secret\nAuthorization: Basic dXNlcjpwYXNz\npassword=supersecret\n-----BEGIN PRIVATE KEY-----\nvery-secret-material\n-----END PRIVATE KEY-----'
     const out = await runTool('secret-redactor', input, '', {})
-    expect(out).toContain('Authorization: Bearer [REDACTED]')
-    expect(out).toContain('Authorization: Basic [REDACTED]')
+    expect(out).toContain('Authorization: [REDACTED]')
+    expect(out).toContain('Authorization: [REDACTED]')
     expect(out).not.toContain('eyJhbGciOiJIUzI1NiJ9.secret')
     expect(out).not.toContain('dXNlcjpwYXNz')
     expect(out).not.toContain('very-secret-material')
@@ -698,7 +698,7 @@ describe('production hardening: GitHub, logs, ports and SemVer', () => {
   it('compiles bounded log filters once and rejects unsafe patterns', async () => {
     expect(await runTool('log-level-filter', 'INFO start\nERROR failed\nWARN retry', '', { level: 'ERROR|WARN' })).toContain('ERROR failed')
     await expect(runTool('log-level-filter', 'a'.repeat(200001), '', {})).rejects.toThrow(/too large/i)
-    await expect(runTool('log-level-filter', 'a'.repeat(100), '', { level: '(a+)+$' })).rejects.toThrow(/quantifier/i)
+    await expect(runTool('log-level-filter', 'a'.repeat(100), '', { level: '(a+)+$' })).rejects.toThrow(/quantified groups/i)
   })
 
   it('validates SemVer prerelease identifiers and build metadata', async () => {
