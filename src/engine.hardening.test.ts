@@ -557,3 +557,36 @@ describe('production hardening: entropy and time parsing', () => {
     await expect(runTool('timezone-offset-helper', 'not-a-date', '', {})).rejects.toThrow(/valid date/i)
   })
 })
+
+describe('production hardening: XML and markup edge cases', () => {
+  it('preserves XML text whitespace and CDATA while removing comments', async () => {
+    const xml = '<root><!--remove--><value>  keep   these spaces  </value><![CDATA[<!--keep-->  raw   text ]]></root>'
+    const out = await runTool('xml-minifier', xml, '', {})
+    expect(out).not.toContain('remove')
+    expect(out).toContain('  keep   these spaces  ')
+    expect(out).toContain('<![CDATA[<!--keep-->  raw   text ]]')
+    expect(out).not.toContain('> <')
+  })
+
+  it('rejects unterminated XML comments and CDATA', async () => {
+    await expect(runTool('xml-minifier', '<root><!-- open', '', {})).rejects.toThrow(/unterminated comment/i)
+    await expect(runTool('xml-minifier', '<root><![CDATA[open', '', {})).rejects.toThrow(/unterminated CDATA/i)
+  })
+
+  it('rejects executable and protocol-relative favicon URLs', async () => {
+    await expect(runTool('favicon-html-builder', 'data:image/svg+xml,<svg/>', '', {})).rejects.toThrow(/HTTP\(S\)/i)
+    await expect(runTool('favicon-html-builder', '//evil.example/icon.ico', '', {})).rejects.toThrow(/root-relative/i)
+    expect(await runTool('favicon-html-builder', '/favicon.ico', '', {})).toContain('href="/favicon.ico"')
+  })
+
+  it('emits a syntactically quoted CSP self source in the security reference', async () => {
+    const out = await runTool('security-headers-reference', '', '', {})
+    expect(out).toContain("default-src 'self'")
+    expect(out).toContain("object-src 'none'")
+  })
+
+  it('rejects trailing CSS unit injection instead of parsing a prefix', async () => {
+    await expect(runTool('css-unit-converter', '16px; color:red', '', {})).rejects.toThrow(/complete value/i)
+    expect(await runTool('css-unit-converter', '16px', '', {})).toContain('Pixels: 16')
+  })
+})
