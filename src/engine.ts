@@ -206,12 +206,6 @@ if(id==='github-actions-starter')return 'name: CI\non: [push, pull_request]\njob
 if(['git-remote-url-converter','git-remote-ssh-to-https','git-remote-https-to-ssh'].includes(id)){const m=v.match(/(?:https:\/\/github\.com\/|git@github\.com:)([^/]+\/[^/.]+)/);if(!m)throw Error('Enter a GitHub HTTPS or SSH remote.');return id==='git-remote-https-to-ssh'||id==='git-remote-url-converter'&&v.startsWith('https')?'git@github.com:'+m[1]+'.git':'https://github.com/'+m[1]+'.git'}
 if(id==='github-markdown-preview')return v;
 if(id==='git-command-cheat-sheet')return 'git status\ngit add .\ngit commit -m "feat: describe change"\ngit pull --rebase origin main\ngit push -u origin HEAD\ngit log --oneline --graph --decorate';
-if(id==='github-issue-template')return `## Description\n${v||'Describe the issue'}\n\n## Steps to reproduce\n1.\n\n## Expected behavior\n\n## Actual behavior`;
-if(id==='pull-request-template')return `## Summary\n${v||'Describe change'}\n\n## Changes\n-\n\n## Testing\n- [ ] Tests pass`;
-if(id==='git-tag-formatter')return 'v'+v.trim().replace(/^v/,'');
-if(id==='lorem')return Array.from({length:Math.min(20,Math.max(1,Number(opts.count)||3))},()=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.').join('\n\n');
-if(id==='log-level-filter'){if(v.length>200000)throw Error('Log input is too large (maximum 200,000 characters).');const pattern=opts.level||'ERROR|WARN|FATAL';return lines(v).filter(x=>compileSafeRegex(pattern,'i').test(x)).join('\n')}
-if(id==='port-number-reference')return v+': '+(({22:'SSH',53:'DNS',80:'HTTP',443:'HTTPS',3306:'MySQL',5432:'PostgreSQL',6379:'Redis',27017:'MongoDB'} as Record<number,string>)[Number(v)]||'Port reference');
 if(id==='css-unit-converter'){const m=v.match(/(-?\d+(?:\.\d+)?)\s*(px|rem|em|pt)/i);if(!m)throw Error('Enter a value like 16px.');const n=+m[1],u=m[2];return `Pixels: ${u==='px'?n:u==='pt'?n*96/72:n*16}\nREM: ${u==='rem'||u==='em'?n:u==='px'?n/16:n*96/72/16}`}
 if(id==='svg-data-uri-encoder')return 'data:image/svg+xml,'+encodeURIComponent(v);
 if(id==='html-formatter')return v.replace(/>\s*</g,'>\n<').trim();
