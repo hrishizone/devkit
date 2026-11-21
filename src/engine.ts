@@ -215,7 +215,6 @@ if(id==='port-number-reference')return v+': '+(({22:'SSH',53:'DNS',80:'HTTP',443
 throw Error('No implementation exists for this tool yet.');
 }
 export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
-,'i').test(template))throw Error('Use safe grid tracks such as repeat(3, 1fr) or 1fr 2fr.');return '.container { display: grid; grid-template-columns: '+template+'; gap: '+gap+'; }'}
 if(id==='css-unit-converter'){const m=v.match(/(-?\d+(?:\.\d+)?)\s*(px|rem|em|pt)/i);if(!m)throw Error('Enter a value like 16px.');const n=+m[1],u=m[2];return `Pixels: ${u==='px'?n:u==='pt'?n*96/72:n*16}\nREM: ${u==='rem'||u==='em'?n:u==='px'?n/16:n*96/72/16}`}
 if(id==='svg-data-uri-encoder')return 'data:image/svg+xml,'+encodeURIComponent(v);
 if(id==='html-formatter')return v.replace(/>\s*</g,'>\n<').trim();
