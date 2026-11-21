@@ -731,3 +731,19 @@ describe('production hardening: CIDR boundary prefixes', () => {
     await expect(runTool('cidr-calculator', '192.0.2.1/024', '', {})).rejects.toThrow(/prefix/i)
   })
 })
+
+describe('production hardening: email and phone input validation', () => {
+  it('validates common dot-atom email syntax without claiming deliverability', async () => {
+    expect(await runTool('email-validator', 'first.last+tag@example.co.uk', '', {})).toContain('Valid email syntax')
+    expect(await runTool('email-validator', 'a@xn--bcher-kva.de', '', {})).toContain('Valid email syntax')
+    for (const invalid of ['a..b@example.com', '.a@example.com', 'a@-example.com', 'a@example.c', 'a@example..com', 'a@@example.com', 'a b@example.com']) {
+      expect(await runTool('email-validator', invalid, '', {})).toBe('Invalid email.')
+    }
+  })
+
+  it('normalizes a single leading plus and rejects inputs without digits', async () => {
+    expect(await runTool('phone-number-cleaner', '+1 (415) 555-2671', '', {})).toBe('+14155552671')
+    expect(await runTool('phone-number-cleaner', '++44 20 1234 5678', '', {})).toBe('+442012345678')
+    expect(await runTool('phone-number-cleaner', 'call me', '', {})).rejects.toThrow(/containing digits/i)
+  })
+})
