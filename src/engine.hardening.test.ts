@@ -129,7 +129,7 @@ describe('production hardening: parser and regex safety', () => {
   })
 
   it('rejects common nested-quantifier ReDoS patterns', async () => {
-    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a+)+$', { flags: 'g' })).rejects.toThrow(/quantifier/i)
+    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a+)+$', { flags: 'g' })).rejects.toThrow(/Quantified groups/i)
   })
 
   it('bounds regex pattern length', async () => {
