@@ -212,9 +212,6 @@ if(id==='git-tag-formatter')return 'v'+v.trim().replace(/^v/,'');
 if(id==='lorem')return Array.from({length:Math.min(20,Math.max(1,Number(opts.count)||3))},()=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.').join('\n\n');
 if(id==='log-level-filter'){if(v.length>200000)throw Error('Log input is too large (maximum 200,000 characters).');const pattern=opts.level||'ERROR|WARN|FATAL';return lines(v).filter(x=>compileSafeRegex(pattern,'i').test(x)).join('\n')}
 if(id==='port-number-reference')return v+': '+(({22:'SSH',53:'DNS',80:'HTTP',443:'HTTPS',3306:'MySQL',5432:'PostgreSQL',6379:'Redis',27017:'MongoDB'} as Record<number,string>)[Number(v)]||'Port reference');
-throw Error('No implementation exists for this tool yet.');
-}
-export async function runTool(id:string,input:string,secondary:string,opts:Record<string,string>):Promise<string>{const result=await runToolInternal(id,input,secondary,opts);if(result.length>5_000_000)throw Error('Result is too large to display (maximum 5,000,000 characters).');return result}
 if(id==='css-unit-converter'){const m=v.match(/(-?\d+(?:\.\d+)?)\s*(px|rem|em|pt)/i);if(!m)throw Error('Enter a value like 16px.');const n=+m[1],u=m[2];return `Pixels: ${u==='px'?n:u==='pt'?n*96/72:n*16}\nREM: ${u==='rem'||u==='em'?n:u==='px'?n/16:n*96/72/16}`}
 if(id==='svg-data-uri-encoder')return 'data:image/svg+xml,'+encodeURIComponent(v);
 if(id==='html-formatter')return v.replace(/>\s*</g,'>\n<').trim();
