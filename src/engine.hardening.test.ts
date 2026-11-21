@@ -677,3 +677,34 @@ describe('production hardening: SQL dialect escaping', () => {
 
 
 })
+
+describe('production hardening: GitHub, logs, ports and SemVer', () => {
+  it('generates GitHub Actions workflows with immutable action references', async () => {
+    const yaml = await runTool('github-actions-starter', '', '', {})
+    expect(yaml).toContain('actions/checkout@11d5960a326750d5838078e36cf38b85af677262')
+    expect(yaml).toContain('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020')
+    expect(yaml).toContain('npm ci')
+    expect(yaml).toContain('npm run build')
+    expect(yaml).toContain('contents: read')
+  })
+
+  it('validates port reference input and keeps common service mappings', async () => {
+    expect(await runTool('port-number-reference', '443', '', {})).toContain('HTTPS')
+    await expect(runTool('port-number-reference', '0', '', {})).rejects.toThrow(/1 to 65,535/i)
+    await expect(runTool('port-number-reference', '65536', '', {})).rejects.toThrow(/1 to 65,535/i)
+    await expect(runTool('port-number-reference', '80/tcp', '', {})).rejects.toThrow(/1 to 65,535/i)
+  })
+
+  it('compiles bounded log filters once and rejects unsafe patterns', async () => {
+    expect(await runTool('log-level-filter', 'INFO start\nERROR failed\nWARN retry', '', { level: 'ERROR|WARN' })).toContain('ERROR failed')
+    await expect(runTool('log-level-filter', 'a'.repeat(200001), '', {})).rejects.toThrow(/too large/i)
+    await expect(runTool('log-level-filter', 'a'.repeat(100), '', { level: '(a+)+$' })).rejects.toThrow(/quantifier/i)
+  })
+
+  it('validates SemVer prerelease identifiers and build metadata', async () => {
+    expect(await runTool('semantic-version-helper', '1.2.3-beta.1+build.2', '', {})).toContain('Patch: 1.2.4')
+    await expect(runTool('semantic-version-helper', '01.2.3', '', {})).rejects.toThrow(/Semantic Version/i)
+    await expect(runTool('semantic-version-helper', '1.2.3-01', '', {})).rejects.toThrow(/Semantic Version/i)
+    await expect(runTool('semantic-version-helper', '1.2.3-alpha..beta', '', {})).rejects.toThrow(/Semantic Version/i)
+  })
+})
