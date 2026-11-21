@@ -337,3 +337,90 @@ describe('production hardening: HTTP header injection', () => {
     expect(out).toContain('b=2')
   })
 })
+
+describe('production hardening: code generation and structural JSON', () => {
+  it('quotes unsafe TypeScript property names and validates interface names', async () => {
+    const out = await runTool('json-to-typescript', '{"safe":1,"bad key":2}', '', { name: 'Payload' })
+    expect(out).toContain('"bad key": number')
+    await expect(runTool('json-to-typescript', '{"x":1}', '', { name: 'Bad Name' })).rejects.toThrow(/identifier/i)
+    await expect(runTool('json-to-typescript', '[1,2]', '', {})).rejects.toThrow(/JSON object/i)
+  })
+
+  it('escapes HTML table content and validates row shapes', async () => {
+    const out = await runTool('json-to-html-table', '[{"name":"<script>alert(1)</script>"}]', '', {})
+    expect(out).toContain('&lt;script&gt;')
+    expect(out).not.toContain('<script>')
+    await expect(runTool('json-to-html-table', '[null]', '', {})).rejects.toThrow(/array of JSON objects/i)
+  })
+
+  it('rejects malformed JSON-to-CSV rows and non-object values', async () => {
+    await expect(runTool('json-to-csv', '[{"a":1},null]', '', {})).rejects.toThrow(/array of JSON objects/i)
+    await expect(runTool('json-to-csv', '["not an object"]', '', {})).rejects.toThrow(/array of JSON objects/i)
+  })
+
+  it('rejects JSON key renames that would overwrite existing values', async () => {
+    await expect(runTool('json-key-renamer', '{"oldKey":1,"newKey":2}', '', { from: 'oldKey', to: 'newKey' })).rejects.toThrow(/duplicate key/i)
+  })
+
+  it('round-trips nested objects, arrays and empty containers through flattening', async () => {
+    const original = '{"nested":{"value":true},"empty":{},"items":[1,2]}'
+    const flattened = await runTool('json-flatten', original, '', {})
+    const restored = await runTool('json-unflatten', flattened, '', {})
+    expect(JSON.parse(restored)).toEqual(JSON.parse(original))
+    await expect(runTool('json-flatten', '{"a.b":1}', '', {})).rejects.toThrow(/cannot contain dots/i)
+  })
+
+  it('validates array sorter and chunk sizes', async () => {
+    await expect(runTool('json-array-sorter', '{"a":1}', '', {})).rejects.toThrow(/JSON array/i)
+    await expect(runTool('json-array-chunker', '[1,2]', '', { size: '0' })).rejects.toThrow(/between 1 and 100,000/i)
+    await expect(runTool('json-array-chunker', '[1,2]', '', { size: '1.5' })).rejects.toThrow(/between 1 and 100,000/i)
+  })
+})
+
+describe('production hardening: regex, HMAC and hash algorithms', () => {
+  it('rejects quantified groups and dangerous log filter patterns', async () => {
+    await expect(runTool('regex-tester', 'a'.repeat(1000), '(a|aa)+$', '', { flags: 'g' } as any)).rejects.toThrow(/Quantified groups/i)
+    await expect(runTool('log-level-filter', 'ERROR hello', '', { level: '(a|aa)+$' })).rejects.toThrow(/Quantified groups/i)
+  })
+
+  it('rejects invalid regex flags and oversized patterns', async () => {
+    await expect(runTool('regex-tester', 'abc', 'a', { flags: 'gg' })).rejects.toThrow(/flags/i)
+    await expect(runTool('regex-tester', 'abc', 'a'.repeat(129), { flags: 'g' })).rejects.toThrow(/128 characters/i)
+  })
+
+  it('matches a known HMAC-SHA-256 test vector and requires a secret', async () => {
+    const result = await runTool('hmac-sha-256', 'The quick brown fox jumps over the lazy dog', '', { secret: 'key' })
+    expect(result).toBe('f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8')
+    await expect(runTool('hmac-sha-256', 'payload', '', { secret: '' })).rejects.toThrow(/non-empty HMAC secret/i)
+    await expect(runTool('webhook-signature-helper', 'payload', '', { secret: '' })).rejects.toThrow(/non-empty webhook signing secret/i)
+  })
+
+  it('restricts digest algorithms to modern SHA-2 variants', async () => {
+    await expect(runTool('hash-generator', 'payload', '', { algorithm: 'SHA-1' })).rejects.toThrow(/SHA-256, SHA-384 or SHA-512/i)
+    expect(await runTool('hash-generator', 'payload', '', { algorithm: 'SHA-512' })).toHaveLength(128)
+  })
+})
+
+describe('production hardening: date and Unicode boundaries', () => {
+  it('counts business days in large ranges without day-by-day iteration', async () => {
+    const result = await runTool('business-days-between-dates', '0001-01-01,9999-12-31', '', {})
+    expect(result).toMatch(/^Business days: \d+$/)
+    expect(await runTool('business-days-between-dates', '2024-01-06,2024-01-07', '', {})).toBe('Business days: 0')
+  })
+
+  it('rejects invalid ISO week dates and invalid leap-year input', async () => {
+    await expect(runTool('week-number-calculator', 'not-a-date', '', {})).rejects.toThrow(/valid date/i)
+    await expect(runTool('leap-year-checker', '20.24', '', {})).rejects.toThrow(/year between 1 and 9999/i)
+    await expect(runTool('leap-year-checker', '0', '', {})).rejects.toThrow(/year between 1 and 9999/i)
+  })
+
+  it('round-trips Unicode supplementary characters as UTF-16 escapes', async () => {
+    const encoded = await runTool('unicode-escape-converter', 'A😀', '', {})
+    expect(encoded).toBe('\\u0041\\ud83d\\ude00')
+    expect(await runTool('unicode-escape-converter', encoded, '', { mode: 'decode' })).toBe('A😀')
+  })
+
+  it('rejects blank seconds rather than treating them as zero', async () => {
+    await expect(runTool('seconds-to-duration', '   ', '', {})).rejects.toThrow(/non-negative safe integer/i)
+  })
+})
