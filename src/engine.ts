@@ -116,7 +116,7 @@ if(['sql-insert','json-to-postgresql','json-to-mysql'].includes(id)){
     if(dialect==='mysql'||dialect==='postgresql'){
       if(!text)return String.fromCharCode(39,39);
       const hex=[...new TextEncoder().encode(text)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
-      return dialect==='mysql'?'CONVERT(0x'+hex+' USING utf8mb4)':\"convert_from(decode('\"+hex+\"','hex'),'UTF8')\";
+      if(dialect==='mysql')return 'CONVERT(0x'+hex+' USING utf8mb4)';return 'convert_from(decode('+String.fromCharCode(39)+hex+String.fromCharCode(39)+','+String.fromCharCode(39)+'hex'+String.fromCharCode(39)+'),'+String.fromCharCode(39)+'UTF8'+String.fromCharCode(39)+')';
     }
     return String.fromCharCode(39)+text.replace(/'/g,"''")+String.fromCharCode(39);
   };
