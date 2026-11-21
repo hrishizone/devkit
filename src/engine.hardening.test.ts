@@ -424,28 +424,6 @@ describe('production hardening: date and Unicode boundaries', () => {
     await expect(runTool('seconds-to-duration', '   ', '', {})).rejects.toThrow(/non-negative safe integer/i)
   })
 })
-, { flags: 'g' })).rejects.toThrow(/Quantified groups/i)
-    await expect(runTool('log-level-filter', 'ERROR hello', '', { level: '(a|aa)+$' })).rejects.toThrow(/Quantified groups/i)
-  })
-
-  it('rejects invalid regex flags and oversized patterns', async () => {
-    await expect(runTool('regex-tester', 'abc', 'a', { flags: 'gg' })).rejects.toThrow(/flags/i)
-    await expect(runTool('regex-tester', 'abc', 'a'.repeat(129), { flags: 'g' })).rejects.toThrow(/128 characters/i)
-  })
-
-  it('matches a known HMAC-SHA-256 test vector and requires a secret', async () => {
-    const result = await runTool('hmac-sha-256', 'The quick brown fox jumps over the lazy dog', '', { secret: 'key' })
-    expect(result).toBe('f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8')
-    await expect(runTool('hmac-sha-256', 'payload', '', { secret: '' })).rejects.toThrow(/non-empty HMAC secret/i)
-    await expect(runTool('webhook-signature-helper', 'payload', '', { secret: '' })).rejects.toThrow(/non-empty webhook signing secret/i)
-  })
-
-  it('restricts digest algorithms to modern SHA-2 variants', async () => {
-    await expect(runTool('hash-generator', 'payload', '', { algorithm: 'SHA-1' })).rejects.toThrow(/SHA-256, SHA-384 or SHA-512/i)
-    expect(await runTool('hash-generator', 'payload', '', { algorithm: 'SHA-512' })).toHaveLength(128)
-  })
-})
-
 describe('production hardening: date and Unicode boundaries', () => {
   it('counts business days in large ranges without day-by-day iteration', async () => {
     const result = await runTool('business-days-between-dates', '0001-01-01,9999-12-31', '', {})
