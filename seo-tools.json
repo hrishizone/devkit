@@ -662,7 +662,7 @@
   {
     "id": "github-actions-starter",
     "name": "GitHub Actions Starter",
-    "description": "Create a basic GitHub Actions workflow.",
+    "description": "Generate a Node.js CI workflow using pinned GitHub Actions, npm ci and the production build checks.",
     "category": "Git & GitHub"
   },
   {
