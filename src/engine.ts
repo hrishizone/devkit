@@ -96,7 +96,19 @@ if(id==='sentence-counter')return 'Sentences: '+(v.match(/[.!?]+(?:\s|$)/g)||[])
 if(id==='paragraph-counter')return 'Paragraphs: '+(v.trim()?v.trim().split(/\n\s*\n/).length:0);
 if(id==='text-frequency-analyzer'){const f:Record<string,number>={};words(v.toLowerCase()).forEach(w=>f[w]=(f[w]||0)+1);return Object.entries(f).sort((a,b)=>b[1]-a[1]).map(([k,n])=>k+': '+n).join('\n')}
 if(id==='email-extractor')return [...new Set(v.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[])].join('\n');
-if(id==='email-validator'){const email=v.trim();if(email.length>254||/[\s\u0000-\u001f\u007f]/.test(email))return 'Invalid email.';const at=email.indexOf('@');if(at<1||at!==email.lastIndexOf('@'))return 'Invalid email.';const local=email.slice(0,at),domain=email.slice(at+1),atom="[A-Za-z0-9!#$%&'*+/=?^_\`{|}~-]+";if(local.length>64||local.startsWith('.')||local.endsWith('.')||local.includes('..')||!new RegExp('^'+atom+'(?:\\\\.'+atom+')*
+if(id==='email-validator'){
+  const email=v.trim();
+  if(email.length>254||/[\s\u0000-\u001f\u007f]/.test(email))return 'Invalid email.';
+  const at=email.indexOf('@');
+  if(at<1||at!==email.lastIndexOf('@'))return 'Invalid email.';
+  const local=email.slice(0,at),domain=email.slice(at+1),atom="[A-Za-z0-9!#$%&'*+/=?^_\\x60{|}~-]+";
+  if(local.length>64||local.startsWith('.')||local.endsWith('.')||local.includes('..')||!new RegExp('^'+atom+'(?:\\.'+atom+')*$').test(local)||domain.length>253)return 'Invalid email.';
+  const labels=domain.split('.');
+  if(labels.length<2||labels.some(label=>label.length>63||!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label)))return 'Invalid email.';
+  const tld=labels[labels.length-1];
+  if(!/^(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{2,59})$/i.test(tld))return 'Invalid email.';
+  return 'Valid email syntax (delivery not verified).'
+}
 if(id==='url-extractor')return [...new Set(v.match(/https?:\/\/[^\s<>"']+/gi)||[])].join('\n');
 if(id==='ip-extractor')return [...new Set(v.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g)||[])].filter(x=>{try{ipN(x);return true}catch{return false}}).join('\n');
 if(id==='phone-number-cleaner'){const digits=v.replace(/\D/g,'');if(!digits)throw Error('Enter a phone number containing digits.');return (v.trim().startsWith('+')?'+':'')+digits}
