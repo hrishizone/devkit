@@ -66,10 +66,12 @@ function App(){
   const executionId=useRef(0)
   useEffect(()=>()=>{executionId.current++},[])
   useEffect(()=>{executionId.current++;setRunning(false)},[activeTool,input,secondary,mode,options])
+  useEffect(()=>{const handle=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();document.querySelector<HTMLInputElement>('[aria-label="Search tools and categories"]')?.focus()}};window.addEventListener('keydown',handle);return()=>window.removeEventListener('keydown',handle)},[])
   useEffect(()=>{
     const onPop=()=>{
       const slug=window.location.pathname.match(/\/tools\/([^/]+)/)?.[1]
-      if(slug&&tools.some(t=>t.id===slug)){executionId.current++;setRunning(false);setActiveTool(slug);setInput(samples[slug]??'');setSecondary(secondarySamples[slug]??'');setOutput('');setError('')}
+      const next=slug&&tools.some(t=>t.id===slug)?slug:tools[0].id
+      executionId.current++;setRunning(false);setActiveTool(next);setInput(samples[next]??'');setSecondary(secondarySamples[next]??'');setOutput('');setError('');setOptions({});setMode('encode')
     }
     window.addEventListener('popstate',onPop)
     return ()=>window.removeEventListener('popstate',onPop)
@@ -95,7 +97,7 @@ function App(){
   const filtered=useMemo(()=>tools.filter(t=>(activeCategory==='All tools'||t.category===activeCategory)&&(!showFavorites||favorites.includes(t.id))&&(!query||[t.name,t.description,t.category,...t.tags].join(' ').toLowerCase().includes(query.toLowerCase()))),[activeCategory,query,showFavorites,favorites])
   const selectTool=(id:string)=>{
     const t=tools.find(x=>x.id===id); if(!t)return
-    executionId.current++;setRunning(false);setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setSecondary(secondarySamples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setMobileNav(false)
+    executionId.current++;setRunning(false);setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setSecondary(secondarySamples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setCopied(false);setMobileNav(false)
   }
   const execute=async()=>{
     const request=++executionId.current
@@ -110,7 +112,7 @@ function App(){
     try{if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');await navigator.clipboard.writeText(output);setCopied(true);window.setTimeout(()=>setCopied(false),1400)}
     catch{setError('Could not access the clipboard. Check browser permissions or copy the result manually.')}
   }
-  const reset=()=>{setInput(samples[activeTool]??'');setSecondary(secondarySamples[activeTool]??'');setOutput('');setError('')}
+  const reset=()=>{executionId.current++;setRunning(false);setInput(samples[activeTool]??'');setSecondary(secondarySamples[activeTool]??'');setOptions({});setMode('encode');setOutput('');setError('');setCopied(false)}
   const isDual=['json-diff','text-diff'].includes(activeTool)
   const option=(key:string,value:string)=>setOptions(v=>({...v,[key]:value}))
   const categoryIcon=(name:string)=>{const C=iconMap[categories.find(c=>c.name===name)?.icon||'Grid2X2']||Grid2X2;return <C size={16}/>}
@@ -129,7 +131,7 @@ function App(){
         <div className="brand-mark"><Terminal size={19}/></div><span className="brand-name">devkit<span>.</span></span><span className="brand-badge">BETA</span>
       </div>
       <div className="top-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search tools and categories" placeholder="Search tools, categories..." /><kbd>⌘ K</kbd></div>
-      <div className="top-actions"><span className="local-badge"><span/> Browser-based</span><a className="icon-button" href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub"><Github size={18}/></a><button className="avatar">D</button></div>
+      <div className="top-actions"><span className="local-badge"><span/> Browser-based</span><a className="icon-button" href="https://github.com/hrishizone/devkit" target="_blank" rel="noreferrer" aria-label="DevKit GitHub repository"><Github size={18}/></a><span className="avatar" aria-hidden="true">D</span></div>
     </header>
     <div className="layout">
       <aside className={`sidebar ${sidebarOpen?'':'collapsed'} ${mobileNav?'mobile-open':''}`}>
@@ -141,7 +143,7 @@ function App(){
         <div className="breadcrumb"><span>Workspace</span><ChevronRight size={13}/><span>{tool.category}</span><ChevronRight size={13}/><b>{tool.name}</b></div>
         <section className="hero">
           <div className="hero-copy"><div className="eyebrow"><Sparkles size={13}/> THE DEVELOPER TOOLBOX</div><h1>Build faster.<br/><span>Debug smarter.</span></h1><p>Essential utilities for developers, all in one workspace. Fast, free, and private by design.</p></div>
-          <div className="hero-art"><div className="orb orb-one"/><div className="orb orb-two"/><div className="code-window"><div className="window-dots"><i/><i/><i/></div><div className="code-line"><span className="code-purple">const</span> <span className="code-blue">developer</span> = {'{'}</div><div className="code-line indent"><span className="code-cyan">focus</span>: <span className="code-green">'building'</span>,</div><div className="code-line indent"><span className="code-cyan">workflow</span>: <span className="code-green">'optimized'</span></div><div className="code-line">{'}'}<span className="cursor">▍</span></div><div className="code-footer"><Zap size={12}/> 36 UTILITIES · ONE WORKSPACE</div></div></div>
+          <div className="hero-art"><div className="orb orb-one"/><div className="orb orb-two"/><div className="code-window"><div className="window-dots"><i/><i/><i/></div><div className="code-line"><span className="code-purple">const</span> <span className="code-blue">developer</span> = {'{'}</div><div className="code-line indent"><span className="code-cyan">focus</span>: <span className="code-green">'building'</span>,</div><div className="code-line indent"><span className="code-cyan">workflow</span>: <span className="code-green">'optimized'</span></div><div className="code-line">{'}'}<span className="cursor">▍</span></div><div className="code-footer"><Zap size={12}/> {tools.length} TOOLS · ONE WORKSPACE</div></div></div>
         </section>
         <section className="stats-row"><div><b>{tools.length}</b><span>Developer tools</span></div><div><b>{categories.length-1}</b><span>Categories</span></div><div><b>100%</b><span>Browser-first</span></div><div><b>0</b><span>Sign-ups required</span></div></section>
         <section className="tool-browser">
@@ -184,7 +186,7 @@ function App(){
           </div>
           <div className="run-row"><span><Lock size={13}/> Processed locally · No upload</span><button className="run-button" onClick={execute} disabled={running}>{running?'Processing...':<>Run tool <ChevronRight size={16}/></>}</button></div>
         </section>
-        <footer><span>© 2025 DevKit. Built for developers.</span><span>Privacy-first · No account required · <a href="mailto:hello@example.com">Feedback</a></span></footer>
+        <footer><span>© {new Date().getFullYear()} DevKit. Built for developers.</span><span>Privacy-first · No account required · <a href="https://github.com/hrishizone/devkit/issues" target="_blank" rel="noreferrer">Feedback</a></span></footer>
       </main>
     </div>
   </div>
