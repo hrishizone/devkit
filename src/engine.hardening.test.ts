@@ -616,3 +616,35 @@ describe('production hardening: Base64 text decoding', () => {
     await expect(runTool('base64', '/w==', '', { mode: 'decode' })).rejects.toThrow(/valid UTF-8/i)
   })
 })
+
+describe('production hardening: cloud, credentials and protocol edge cases', () => {
+  it('rejects reserved S3 bucket names and malformed port range mappings', async () => {
+    await expect(runTool('aws-s3-uri-parser', 's3://my-bucket--x-s3/key', '', {})).rejects.toThrow(/S3 bucket name/i)
+    await expect(runTool('docker-port-mapper', '8080:80-81', '', {})).rejects.toThrow(/mixed ranges/i)
+    expect(await runTool('docker-port-mapper', '80-81', '', {})).toContain("'80-81'")
+  })
+
+  it('rejects all HTTP control characters in header values', async () => {
+    await expect(runTool('content-type-builder', 'application/json\u0001X', '', {})).rejects.toThrow(/control characters/i)
+  })
+
+  it('redacts more authorization schemes and common provider tokens', async () => {
+    const input = 'Authorization: Digest abc123\nAWS_SESSION=ASIA1234567890123456\nGitLab=glpat-abcdefghijklmnopqrstuvwxyz\nSlack=xoxb-12345678901234567890'
+    const out = await runTool('secret-redactor', input, '', {})
+    expect(out).toContain('Authorization: Digest [REDACTED]')
+    expect(out).not.toContain('ASIA1234567890123456')
+    expect(out).not.toContain('glpat-abcdefghijklmnopqrstuvwxyz')
+    expect(out).not.toContain('xoxb-12345678901234567890')
+  })
+
+  it('splits CSS color functions only at top-level commas', async () => {
+    const out = await runTool('css-gradient', 'rgb(255, 0, 0), rgba(0, 0, 0, .5)', '', {})
+    expect(out).toContain('rgb(255, 0, 0), rgba(0, 0, 0, .5)')
+  })
+
+  it('validates UUID output counts', async () => {
+    await expect(runTool('uuid-generator', '', '', { count: '1.5' })).rejects.toThrow(/UUID count/i)
+    await expect(runTool('uuid-v7-generator', '', '', { count: '101' })).rejects.toThrow(/UUID count/i)
+    expect((await runTool('uuid-generator', '', '', { count: '2' })).split('\n')).toHaveLength(2)
+  })
+})
