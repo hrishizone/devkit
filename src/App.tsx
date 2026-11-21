@@ -66,7 +66,6 @@ function App(){
   const executionId=useRef(0)
   useEffect(()=>()=>{executionId.current++},[])
   useEffect(()=>{executionId.current++;setRunning(false)},[activeTool,input,secondary,mode,options])
-  useEffect(()=>{const handle=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();document.querySelector<HTMLInputElement>('[aria-label="Search tools and categories"]')?.focus()}};window.addEventListener('keydown',handle);return()=>window.removeEventListener('keydown',handle)},[])
   useEffect(()=>{
     const onPop=()=>{
       const slug=window.location.pathname.match(/\/tools\/([^/]+)/)?.[1]
