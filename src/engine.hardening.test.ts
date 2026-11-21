@@ -321,7 +321,7 @@ describe('production hardening: HTTP header injection', () => {
 
   it('validates CORS origins and methods', async () => {
     await expect(runTool('cors-header-guide', '', '', { origin: 'https://example.com\r\nX-Evil: yes' })).rejects.toThrow(/CR, LF/i)
-    await expect(runTool('cors-header-guide', '', '', { origin: 'javascript:alert(1)' })).rejects.toThrow(/HTTP\(S\) origin/i)
+    await expect(runTool('cors-header-guide', '', '', { origin: 'javascript:alert(1)' })).rejects.toThrow(/HTTP\(S\) scheme/i)
     expect(await runTool('cors-header-guide', '', '', { origin: 'https://example.com' })).toContain('Access-Control-Allow-Origin: https://example.com')
   })
 
