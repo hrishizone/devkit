@@ -25,7 +25,7 @@ const splitCssList=(value:string)=>{const out:string[]=[];let depth=0,current=''
 const cssGridTemplate=(value:string)=>{const x=value.trim(),track=/^(?:auto|\d+(?:\.\d+)?fr|(?:0|\d+(?:\.\d+)?(?:px|rem|em)))$/i,repeated=/^repeat\(\d{1,2},\s*(?:auto|\d+(?:\.\d+)?fr|(?:0|\d+(?:\.\d+)?(?:px|rem|em)))\)$/i;if(x.length>200||!(repeated.test(x)||x.split(/\s+/).every(t=>track.test(t))))throw Error('Use safe grid tracks such as repeat(3, 1fr) or 1fr 2fr.');return x};
 const strictBase64Decode=(value:string)=>{const s=value.replace(/\s+/g,'');if(!s)return '';if(s.length%4!==0||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(s))throw Error('Invalid Base64: check characters and padding.');try{return new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)))}catch{throw Error('Base64 does not contain valid UTF-8 text.')}};
 const strictHexDecode=(value:string)=>{const s=value.replace(/\s+/g,'');if(s.length%2||!/^[0-9a-f]*$/i.test(s))throw Error('Enter an even number of valid hexadecimal digits.');const bytes=Uint8Array.from(s.match(/.{2}/g)||[],x=>parseInt(x,16));try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{throw Error('Hex bytes are not valid UTF-8 text.')}};
-const qsql=(x:any)=>x===null?'NULL':typeof x==='number'||typeof x==='boolean'?String(x):"'"+String(x&&typeof x==='object'?JSON.stringify(x):x??'').replace(/'/g,"''")+"'";
+const qsql=(x:any)=>{if(x===null)return 'NULL';if(typeof x==='number'||typeof x==='boolean')return String(x);const text=String(x&&typeof x==='object'?JSON.stringify(x):x??'');if(text.includes('\0'))throw Error('SQL text literals cannot contain NUL bytes; use a binary type.');return String.fromCharCode(39)+text.replace(/'/g,"''")+String.fromCharCode(39)};
 const sqlIdentifier=(value:string,dialect='standard')=>{const parts=value.split('.');if(!parts.length||parts.some(p=>!p||! /^[A-Za-z_][A-Za-z0-9_$ ]*$/.test(p)))throw Error('Use a valid SQL identifier (letters, digits, underscore; dot-separated names allowed).');const q=dialect==='mysql'?'`':'"';return parts.map(p=>q+p.replaceAll(q,q+q)+q).join('.')};
 const statuses:Record<string,string>={'200':'OK','201':'Created','204':'No Content','301':'Moved Permanently','302':'Found','304':'Not Modified','400':'Bad Request','401':'Unauthorized','403':'Forbidden','404':'Not Found','405':'Method Not Allowed','409':'Conflict','422':'Unprocessable Content','429':'Too Many Requests','500':'Internal Server Error','502':'Bad Gateway','503':'Service Unavailable','504':'Gateway Timeout'};
 const mime:Record<string,string>={html:'text/html',css:'text/css',js:'text/javascript',json:'application/json',xml:'application/xml',txt:'text/plain',csv:'text/csv',pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',svg:'image/svg+xml',zip:'application/zip',yaml:'application/yaml'};
@@ -114,10 +114,12 @@ if(['sql-insert','json-to-postgresql','json-to-mysql'].includes(id)){
     if(typeof value==='number'||typeof value==='boolean')return String(value);
     const text=String(typeof value==='object'?JSON.stringify(value):value);
     if(dialect==='mysql'||dialect==='postgresql'){
+      if(dialect==='postgresql'&&text.includes('\0'))throw Error('PostgreSQL text values cannot contain NUL bytes.');
       if(!text)return String.fromCharCode(39,39);
       const hex=[...new TextEncoder().encode(text)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
       if(dialect==='mysql')return 'CONVERT(0x'+hex+' USING utf8mb4)';return 'convert_from(decode('+String.fromCharCode(39)+hex+String.fromCharCode(39)+','+String.fromCharCode(39)+'hex'+String.fromCharCode(39)+'),'+String.fromCharCode(39)+'UTF8'+String.fromCharCode(39)+')';
     }
+    if(text.includes('\0'))throw Error('SQL text literals cannot contain NUL bytes; use a binary type.');
     return String.fromCharCode(39)+text.replace(/'/g,"''")+String.fromCharCode(39);
   };
   return 'INSERT INTO '+table+' ('+headers.map(key=>sqlIdentifier(key,dialect)).join(', ')+') VALUES\n'+rows.map((row:any)=>'('+headers.map(key=>sqlValue(Object.hasOwn(row,key)?row[key]:null)).join(', ')+')').join(',\n')+';';
