@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - production-hardening-pass-1
+      - main
   pull_request:
     branches:
       - main
