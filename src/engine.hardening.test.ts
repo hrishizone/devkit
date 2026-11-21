@@ -469,3 +469,28 @@ describe('production hardening: date and Unicode boundaries', () => {
     await expect(runTool('seconds-to-duration', '   ', '', {})).rejects.toThrow(/non-negative safe integer/i)
   })
 })
+
+describe('production hardening: generated secrets and redaction', () => {
+  it('returns the requested number of hexadecimal characters', async () => {
+    const value = await runTool('random-hex-generator', '', '', { length: '31' })
+    expect(value).toHaveLength(31)
+    expect(value).toMatch(/^[0-9a-f]+$/)
+    await expect(runTool('random-hex-generator', '', '', { length: '31.5' })).rejects.toThrow(/integer from 8 to 256/i)
+  })
+
+  it('validates bounded generator counts', async () => {
+    await expect(runTool('nano-id-generator', '', '', { count: '-1' })).rejects.toThrow(/count must be an integer/i)
+    await expect(runTool('passphrase-generator', '', '', { count: '21' })).rejects.toThrow(/count must be an integer/i)
+  })
+
+  it('redacts complete authorization credentials and private keys', async () => {
+    const input = 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.secret\nAuthorization: Basic dXNlcjpwYXNz\npassword=supersecret\n-----BEGIN PRIVATE KEY-----\nvery-secret-material\n-----END PRIVATE KEY-----'
+    const out = await runTool('secret-redactor', input, '', {})
+    expect(out).toContain('Authorization: Bearer [REDACTED]')
+    expect(out).toContain('Authorization: Basic [REDACTED]')
+    expect(out).not.toContain('eyJhbGciOiJIUzI1NiJ9.secret')
+    expect(out).not.toContain('dXNlcjpwYXNz')
+    expect(out).not.toContain('very-secret-material')
+    expect(out).toContain('[REDACTED PRIVATE KEY]')
+  })
+})
