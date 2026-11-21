@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "npm audit --audit-level=moderate && tsc -b && vitest run && vite build && node scripts/generate-seo.mjs && node scripts/generate-sitemap.mjs && node scripts/verify-seo.mjs",
+    "build": "npm audit --audit-level=moderate && tsc -b && vitest run && vite build && node scripts/generate-seo.mjs && node scripts/generate-sitemap.mjs && node scripts/verify-seo.mjs && node scripts/verify-catalog.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --pretty",
     "test": "vitest run",
