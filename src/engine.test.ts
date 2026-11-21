@@ -16,7 +16,7 @@ describe('DevKit utility engine',()=>{
   })
   it('converts a timestamp',async()=>expect(await runTool('timestamp','0','',{})).toContain('1970-01-01T00:00:00.000Z'))
   it('creates URL slugs',async()=>expect(await runTool('slug-generator','Hello World!','',{})).toBe('hello-world'))
-  it('creates SQL inserts',async()=>expect(await runTool('sql-insert','[{"id":1}]','',{table:'users'})).toContain('INSERT INTO users'))
+  it('creates SQL inserts',async()=>expect(await runTool('sql-insert','[{"id":1}]','',{table:'users'})).toContain('INSERT INTO \"users\"'))
   it('generates UUID identifiers',async()=>expect((await runTool('uuid-generator','','',{count:'2'})).split('\n')).toHaveLength(2))
 })
 
@@ -36,7 +36,7 @@ describe('expanded utility coverage',()=>{
   it('parses AWS ARNs',async()=>expect(await runTool('aws-arn-parser','arn:aws:s3:::my-bucket','',{})).toContain('s3'));
   it('converts IPv4 to integer',async()=>expect(await runTool('ipv4-to-integer','127.0.0.1','',{})).toBe('2130706433'));
   it('creates conventional commits',async()=>expect(await runTool('conventional-commit-builder','add login','',{type:'feat',scope:'auth'})).toBe('feat(auth): add login'));
-  it('builds Docker run commands',async()=>expect(await runTool('docker-run','nginx:latest','',{ports:'8080:80'})).toContain('-p 8080:80'));
+  it('builds Docker run commands',async()=>expect(await runTool('docker-run','nginx:latest','',{ports:'8080:80'})).toContain("-p '8080:80'"));
   it('sorts text lines',async()=>expect(await runTool('line-sorter','zebra\napple','',{})).toBe('apple\nzebra'));
   it('extracts selected CSV columns',async()=>expect(await runTool('csv-column-selector','name,role\nAva,Engineer','',{columns:'name'})).toContain('Ava'));
   it('calculates webhook HMAC signatures',async()=>expect(await runTool('webhook-signature-helper','payload','',{secret:'key'})).toHaveLength(64));
@@ -121,7 +121,8 @@ const sampleForTool = (id: string): [string,string,Record<string,string>] => {
   if (id==='kubernetes-deployment-starter'||id==='kubernetes-service-starter') return ['sample-app','',{}]
   if (id==='kubernetes-configmap-builder') return ['ENV=prod\nREGION=ap-south-1','',{}]
   if (id==='kubernetes-label-builder') return ['app=web,team=platform','',{}]
-  if (id==='terraform-variable-builder'||id==='terraform-output-builder'||id==='terraform-resource-address-parser') return ['aws_instance.web.id','',{}]
+  if (id==='terraform-variable-builder'||id==='terraform-output-builder') return ['resource_id','',{}]
+  if (id==='terraform-resource-address-parser') return ['aws_instance.web.id','',{}]
   if (id==='aws-arn-parser') return ['arn:aws:s3:::my-bucket','',{}]
   if (id==='aws-s3-uri-parser'||id==='aws-s3-key-url-encoder') return ['s3://my-bucket/folder/file name.txt','',{}]
   if (id==='iam-policy-json-formatter') return ['{"Version":"2012-10-17","Statement":[]}','',{}]
@@ -142,7 +143,9 @@ const sampleForTool = (id: string): [string,string,Record<string,string>] => {
   if (id==='color-converter'||id==='hex-to-rgb'||id==='rgb-to-hex'||id==='color-contrast-calculator') return ['#336699','',{}]
   if (id==='css-gradient') return ['#6366f1, #06b6d4','',{}]
   if (id==='css-minifier') return ['/* note */ .x { color: red; }','',{}]
-  if (id==='css-box-shadow-builder'||id==='css-border-radius-builder'||id==='css-flexbox-playground'||id==='css-grid-builder'||id==='css-unit-converter'||id==='css-clamp-builder'||id==='css-transform-builder'||id==='css-animation-builder') return ['16px','',{direction:'row',min:'1rem',preferred:'2vw',max:'3rem'}]
+  if (id==='css-grid-builder') return ['repeat(3, 1fr)','',{gap:'1rem'}]
+  if (id==='css-transform-builder') return ['translateX(0)','',{}]
+  if (id==='css-box-shadow-builder'||id==='css-border-radius-builder'||id==='css-flexbox-playground'||id==='css-unit-converter'||id==='css-clamp-builder'||id==='css-animation-builder') return ['16px','',{direction:'row',min:'1rem',preferred:'2vw',max:'3rem'}]
   if (id==='svg-data-uri-encoder') return ['<svg></svg>','',{}]
   if (id==='markdown-preview'||id==='github-markdown-preview') return ['# Hello\nA paragraph','',{}]
   if (id==='html-meta-tag-builder'||id==='open-graph-tag-builder'||id==='meta-description-counter') return ['A useful page description','',{title:'Sample'}]

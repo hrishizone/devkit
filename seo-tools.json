@@ -20,19 +20,19 @@
   {
     "id": "json-to-yaml",
     "name": "JSON to YAML",
-    "description": "Convert JSON data into YAML.",
+    "description": "Convert nested JSON objects and arrays to YAML-compatible text.",
     "category": "JSON & Data"
   },
   {
     "id": "yaml-to-json",
     "name": "YAML to JSON",
-    "description": "Convert YAML into formatted JSON.",
+    "description": "Convert flat YAML key/value documents to JSON; nested YAML is not supported.",
     "category": "JSON & Data"
   },
   {
     "id": "json-diff",
     "name": "JSON Diff",
-    "description": "Compare two JSON documents.",
+    "description": "Compare top-level JSON properties; nested objects are compared as whole values.",
     "category": "JSON & Data"
   },
   {
@@ -98,7 +98,7 @@
   {
     "id": "regex-tester",
     "name": "Regex Tester",
-    "description": "Test a regular expression against sample text.",
+    "description": "Test bounded regex patterns; quantified groups are rejected to reduce backtracking risk.",
     "category": "Text"
   },
   {
@@ -110,7 +110,7 @@
   {
     "id": "sql-formatter",
     "name": "SQL Formatter",
-    "description": "Format SQL queries for readability.",
+    "description": "Apply basic whitespace and keyword line breaks; not a SQL parser or syntax validator.",
     "category": "SQL & Database"
   },
   {
@@ -170,7 +170,7 @@
   {
     "id": "markdown-preview",
     "name": "Markdown Preview",
-    "description": "Preview Markdown-like text as formatted output.",
+    "description": "Display Markdown source as plain text; HTML rendering is not supported.",
     "category": "Frontend"
   },
   {
@@ -212,13 +212,13 @@
   {
     "id": "json-schema",
     "name": "JSON Schema Starter",
-    "description": "Infer a basic schema from a JSON sample.",
+    "description": "Infer a basic schema from a JSON sample; array item schemas use the first item only.",
     "category": "JSON & Data"
   },
   {
     "id": "json-to-typescript",
     "name": "JSON to TypeScript",
-    "description": "Generate TypeScript interfaces from JSON samples.",
+    "description": "Generate a shallow TypeScript interface from a JSON object sample.",
     "category": "JSON & Data"
   },
   {
@@ -248,7 +248,7 @@
   {
     "id": "xml-minifier",
     "name": "XML Minifier",
-    "description": "Compact XML markup.",
+    "description": "Remove comments and inter-tag whitespace while preserving text and CDATA; does not validate XML.",
     "category": "JSON & Data"
   },
   {
@@ -290,13 +290,13 @@
   {
     "id": "json-flatten",
     "name": "JSON Flatten",
-    "description": "Flatten nested JSON structures.",
+    "description": "Flatten nested objects with dotted paths; arrays remain leaf values and keys containing dots are rejected.",
     "category": "JSON & Data"
   },
   {
     "id": "json-unflatten",
     "name": "JSON Unflatten",
-    "description": "Rebuild nested JSON structures.",
+    "description": "Rebuild objects from dotted paths; array paths are not inferred automatically.",
     "category": "JSON & Data"
   },
   {
@@ -452,7 +452,7 @@
   {
     "id": "email-extractor",
     "name": "Email Extractor",
-    "description": "Find email-like strings in text.",
+    "description": "Extract common ASCII email-like patterns from text; candidates are not verified for validity or delivery.",
     "category": "Text"
   },
   {
@@ -608,7 +608,7 @@
   {
     "id": "graphql-formatter",
     "name": "GraphQL Formatter",
-    "description": "Format GraphQL query text.",
+    "description": "Apply basic whitespace formatting; not a GraphQL parser or syntax validator.",
     "category": "API & HTTP"
   },
   {
@@ -662,7 +662,7 @@
   {
     "id": "github-actions-starter",
     "name": "GitHub Actions Starter",
-    "description": "Create a basic GitHub Actions workflow.",
+    "description": "Generate a Node.js CI workflow using pinned GitHub Actions, npm ci and the production build checks.",
     "category": "Git & GitHub"
   },
   {
@@ -674,7 +674,7 @@
   {
     "id": "github-markdown-preview",
     "name": "GitHub Markdown Preview",
-    "description": "Preview GitHub-flavoured Markdown.",
+    "description": "Display GitHub-flavoured Markdown source as plain text; HTML rendering is not supported.",
     "category": "Git & GitHub"
   },
   {
@@ -860,7 +860,7 @@
   {
     "id": "css-grid-builder",
     "name": "CSS Grid Builder",
-    "description": "Generate CSS Grid declarations.",
+    "description": "Generate CSS Grid declarations using safe, basic track syntax.",
     "category": "Frontend"
   },
   {
@@ -920,13 +920,13 @@
   {
     "id": "password-strength-estimator",
     "name": "Password Strength Estimator",
-    "description": "Estimate password entropy locally.",
+    "description": "Estimate password strength using a simple local heuristic; not a breach check or formal entropy calculation.",
     "category": "Security"
   },
   {
     "id": "passphrase-generator",
     "name": "Passphrase Generator",
-    "description": "Generate memorable random passphrases.",
+    "description": "Generate 16-word passphrases using cryptographically secure random selection.",
     "category": "Security"
   },
   {
@@ -938,7 +938,7 @@
   {
     "id": "security-headers-reference",
     "name": "Security Headers Reference",
-    "description": "Review common HTTP security headers.",
+    "description": "Show common headers and a baseline CSP; tailor HSTS and CSP to your deployment.",
     "category": "Security"
   },
   {
@@ -1046,7 +1046,7 @@
   {
     "id": "base58-encoder",
     "name": "Base58 Encoder",
-    "description": "Encode bytes using the Bitcoin Base58 alphabet.",
+    "description": "Encode UTF-8 text bytes using Bitcoin Base58; a decoder is not included.",
     "category": "Encoding"
   },
   {
@@ -1088,13 +1088,13 @@
   {
     "id": "email-validator",
     "name": "Email Validator",
-    "description": "Check common email address syntax.",
+    "description": "Validate common ASCII dot-atom email syntax; quoted local parts, internationalized local parts and deliverability are not checked.",
     "category": "Text"
   },
   {
     "id": "phone-number-cleaner",
     "name": "Phone Number Cleaner",
-    "description": "Normalize phone number punctuation.",
+    "description": "Normalize phone text to digits with at most one leading plus; does not validate country-specific numbering plans.",
     "category": "Text"
   },
   {
@@ -1256,7 +1256,7 @@
   {
     "id": "css-transform-builder",
     "name": "CSS Transform Builder",
-    "description": "Compose transform CSS declarations.",
+    "description": "Generate transforms from supported numeric CSS functions.",
     "category": "Frontend"
   },
   {
@@ -1286,13 +1286,13 @@
   {
     "id": "credential-pattern-scanner",
     "name": "Credential Pattern Scanner",
-    "description": "Find likely credentials in pasted text.",
+    "description": "Scan pasted text for a small set of common credential patterns; not a complete secret scanner.",
     "category": "Security"
   },
   {
     "id": "sha-256-file-checksum-guide",
     "name": "SHA-256 File Checksum Guide",
-    "description": "Explain local file checksum workflows.",
+    "description": "Explain how to hash a local file; this text-only tool does not read files.",
     "category": "Security"
   },
   {

@@ -1,72 +1,119 @@
 # DevKit
 
-A browser-first developer utility workspace built with React, TypeScript and Vite.
+A browser-first developer utility workspace built with React, TypeScript and Vite. The catalogue contains 221 tools for formatting, conversion, validation, networking, cloud configuration, text processing and developer workflows.
 
-## Features
+**Production URL:** https://devkit-fawn.vercel.app
 
-- Searchable tool catalogue with categories and favorites
-- Responsive dark developer interface
-- Client-side processing for implemented utilities
-- Copyable output, sample inputs, reset controls and error states
-- No account required and no backend required for the included tools
+## Principles
 
-## Quick start
+- Tool inputs are processed in the browser; the included tools do not require a DevKit backend or account.
+- No analytics or third-party processing is required for the core tool workflow.
+- Input, option and output sizes are bounded by the execution engine.
+- Security-sensitive operations fail closed on invalid input rather than silently accepting malformed values.
+- Reference and guide tools are labelled as such; they do not pretend to perform external operations.
 
-Requirements: Node.js 20+
+## Requirements
+
+- Node.js 22.12.x (22.x)
+- npm 10.9.2
+
+The exact dependency tree is committed in `package-lock.json`. Use `npm ci` for reproducible installs.
+
+## Local development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 Open the local URL printed by Vite.
 
-## Quality checks
+## Quality gates
 
 ```bash
 npm test
 npm run typecheck
+npm run build
 ```
 
-The test suite covers core transformations, validation/error behavior and a UI smoke test. Keyboard support includes Ctrl/Cmd+K to focus search, Escape to clear search, Enter/Space on tool cards, and visible focus indicators.
+The production build runs these gates in order:
 
-## SEO landing pages
+1. `npm audit --audit-level=moderate`
+2. TypeScript project checks
+3. Vitest unit, edge-case and UI integration tests
+4. Vite production build
+5. Generation of 221 static SEO landing pages
+6. Generation of `sitemap.xml` and `robots.txt`
+7. Verification of canonical URLs, JSON-LD, page count, sitemap URLs and robots.txt
 
-Every catalogued tool gets a static `/tools/<tool-id>/` page during production build with a unique title, description, canonical URL, Open Graph metadata and WebApplication JSON-LD. The build also writes `sitemap.xml` and `robots.txt`. Update `seo-tools.json` and `src/tools.ts` together when adding or removing tools. Set `SITE_URL` to your deployed domain when building (for example `SITE_URL=https://yourdomain.com npm run build`). Without it, generated canonical URLs use the reserved `devkit.example` placeholder.
+At this revision, CI passes **357 tests across 3 test files**. The catalogue test matrix executes a representative input through every one of the 221 tool IDs. That matrix is a smoke-coverage guarantee, not a claim that every tool has exhaustive property-based or browser end-to-end coverage.
+
+GitHub Actions runs the quality gate on the hardening branch and on pull requests targeting `main`. Workflow actions are pinned to immutable commit SHAs.
+
+## SEO and deployment
+
+Every tool has a static `/tools/<tool-id>/` landing page with a unique title, description, canonical URL, Open Graph metadata and JSON-LD. The build verifies all generated artifacts.
+
+The default canonical origin is `https://devkit-fawn.vercel.app`. For a future custom domain, set `SITE_URL` to a root HTTPS origin, for example:
+
+```bash
+SITE_URL=https://tools.example.com npm run build
+```
+
+Do not include credentials, a path, query string or fragment in `SITE_URL`.
+
+When adding or removing a tool, update both `src/tools.ts` and `seo-tools.json`; the build fails if the SEO catalogue contains duplicate or invalid slugs or if generated pages are missing.
+
+Vercel installs with `npm ci`. Production deployments remain connected to `main`. Automatic preview deployments are intentionally disabled for the temporary `production-hardening-pass-1` branch while it is being validated.
+
+## Runtime limits
+
+- Primary and secondary input fields: 1,000,000 characters each
+- Tool options: at most 100 keys; each key is limited to 128 characters and each value to 100,000 characters
+- Tool output: 5,000,000 characters maximum
+- JSON parsing: maximum depth 100 and 100,000 visited values
+- Regex tester: pattern length 128, input length 100,000 and 10,000 matches maximum
+- UUID generation: 1–100 per request; passphrase generation: 1–20 per request
+
+These are application-level limits, not a substitute for browser memory limits or independent validation of generated commands and configuration.
+
+## Security controls
+
+- Content Security Policy without `unsafe-inline` script or style permissions
+- HSTS, `X-Content-Type-Options`, `X-Frame-Options`, Referrer Policy, Permissions Policy, COOP and CORP headers
+- Strict runtime input and option validation, JSON depth/node limits, and a 5 MB result cap
+- Cryptographically secure random generation with unbiased sampling
+- SHA-256, SHA-384 and SHA-512 only; HMAC tools require a non-empty secret
+- MySQL string values emitted as UTF-8 hex literals to avoid backslash/quote injection
+- Shell arguments quoted in generated Docker and cURL commands
+- Header values checked for control characters
+- HTML attributes/text escaped in generated markup
+- Secret redaction for common authorization headers, private-key blocks and several provider-token formats
+
+All core transformations run locally in the browser. HMAC secrets are used in browser memory for the calculation; they are not sent to a DevKit backend. Do not paste secrets into a website unless you trust the site and the device you are using.
+
+## Known limitations — read before relying on output
+
+Production hardening does not make every utility a standards-complete parser or security product. Important boundaries:
+
+- **JWT tools decode only.** They do not verify signatures, issuer, audience or trust.
+- **Regex testing is bounded and heuristic.** Risky quantified groups and other patterns are rejected, but this is not a formal RE2/linear-time regex engine.
+- **YAML to JSON supports a documented flat key/value subset.** It is not a complete YAML 1.2 parser.
+- **SQL and GraphQL formatters are heuristic formatters**, not AST parsers or syntax validators.
+- **Markdown preview tools display source as text**; they do not render or sanitize arbitrary HTML.
+- **JSON Schema and TypeScript generators are basic inference tools**, not complete schema/type generators.
+- **Credential scanning covers a limited set of common patterns** and is not a complete secret scanner.
+- **Password-strength estimation is a local heuristic**, not a breach check or formal entropy calculation.
+- **The SHA-256 file-checksum guide is guidance only**; the current text-only interface does not read uploaded files.
+- **Security-header output is a baseline reference.** Tailor CSP, HSTS and other headers to the actual deployment and its dependencies.
+
+The passphrase generator creates 16-word phrases using a 137-word list and cryptographically secure unbiased selection (about 113.6 bits of word-selection entropy). The password and token generators use Web Crypto randomness.
 
 ## Production build
 
 ```bash
-npm run typecheck
 npm run build
 npm run preview
 ```
 
-Deploy the generated `dist/` directory to any static host (Cloudflare Pages, Netlify, Vercel or S3 + CloudFront).
-
-## Tool catalogue and implementation status
-
-The catalogue contains 221 tool entries, of which approximately 90 have working transformations in this MVP. The engine implements the core formatting, conversion, hashing, comparison, networking, text, CSS and generator utilities. Some specialist catalogue entries are still roadmap entries and intentionally return an explicit not-yet-implemented message rather than pretending to process data. Check the selected tool with sample input before publishing it as fully supported.
-
-## Implemented tools
-
-JSON formatter/minifier/validator, JSON↔YAML (common flat YAML subset), JSON diff, CSV to JSON, Base64, URL and HTML entity encoding, hex conversion, SHA hashes, UUIDs, JWT decoding (not verification), text diff, case conversion, regex tester, slug generator, basic SQL formatting and INSERT generation, cron explainer, `.env` sorter, Docker run builder, IPv4 CIDR calculator, timestamp converter, HEX/RGB/HSL converter, CSS gradient generator, HTML formatter, basic Markdown preview, HTTP status lookup, cURL builder, header parser, chmod calculator, Lorem Ipsum and password generation, and basic JSON Schema inference.
-
-Some advanced catalogue entries are intentionally listed as future tools; the interface displays a clear not-yet-implemented message when selected.
-
-## Production hardening before public launch
-
-This is a production-oriented MVP starter, not a fully audited production service. Before launch:
-
-- Add automated unit, integration and browser tests.
-- Add a real YAML 1.2 parser and robust CSV parser for full standards support.
-- Review HTML/Markdown rendering and sanitize all untrusted markup before rendering.
-- Add CSP, security headers, dependency scanning and a lockfile.
-- Add error monitoring, privacy policy, terms and accessible keyboard navigation.
-- Add server-side processing only where necessary, with file limits, isolation, rate limiting and automatic deletion.
-- Add analytics with privacy-conscious consent and a documented retention policy.
-- Verify crypto APIs and browser compatibility in supported browsers.
-
-## Security notes
-
-All included transformations run in the browser. JWT decoding does not validate signatures, expiry, issuer or audience. Do not paste production secrets or private keys into untrusted websites. The password generator uses Web Crypto randomness. SHA hashes use the browser Web Crypto API.
+The generated `dist/` directory can be hosted on Vercel or another static host. Review the known limitations above and test representative real-world inputs before relying on any individual utility in a production workflow.
