@@ -669,9 +669,9 @@ describe('production hardening: SQL dialect escaping', () => {
     expect(sql).toContain("''")
   })
   it('rejects NUL bytes in PostgreSQL and generic SQL text literals', async () => {
-    await expect(runTool('json-to-postgresql', JSON.stringify([{ value: '\\u0000' }]), '', {})).rejects.toThrow(/NUL bytes/i)
-    await expect(runTool('sql-literal-escaper', '\\u0000', '', {})).rejects.toThrow(/NUL bytes/i)
-    const mysql = await runTool('json-to-mysql', JSON.stringify([{ value: '\\u0000' }]), '', {})
+    await expect(runTool('json-to-postgresql', JSON.stringify([{ value: '\u0000' }]), '', {})).rejects.toThrow(/NUL bytes/i)
+    await expect(runTool('sql-literal-escaper', '\u0000', '', {})).rejects.toThrow(/NUL bytes/i)
+    const mysql = await runTool('json-to-mysql', JSON.stringify([{ value: '\u0000' }]), '', {})
     expect(mysql).toContain('CONVERT(0x00 USING utf8mb4)')
   })
 
