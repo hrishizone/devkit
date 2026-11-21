@@ -590,3 +590,16 @@ describe('production hardening: XML and markup edge cases', () => {
     expect(await runTool('css-unit-converter', '16px', '', {})).toContain('Pixels: 16')
   })
 })
+
+describe('production hardening: runtime argument contracts', () => {
+  it('rejects invalid option types, oversized option values and excessive option counts', async () => {
+    await expect(runTool('json-formatter', '{}', '', { bad: 42 } as any)).rejects.toThrow(/options are invalid/i)
+    await expect(runTool('json-formatter', '{}', '', { bad: 'x'.repeat(100001) })).rejects.toThrow(/options are invalid/i)
+    const many = Object.fromEntries(Array.from({ length: 101 }, (_, i) => ['k' + i, 'v']))
+    await expect(runTool('json-formatter', '{}', '', many)).rejects.toThrow(/options are invalid/i)
+  })
+
+  it('rejects unbounded tool identifiers', async () => {
+    await expect(runTool('x'.repeat(129), '', '', {})).rejects.toThrow(/valid tool/i)
+  })
+})
