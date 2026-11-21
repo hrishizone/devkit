@@ -106,17 +106,17 @@ if(['sql-insert','json-to-postgresql','json-to-mysql'].includes(id)){
   const rows=json(v);
   if(!Array.isArray(rows)||!rows.length||rows.some((x:any)=>!x||typeof x!=='object'||Array.isArray(x)))throw Error('Provide a non-empty JSON array of objects.');
   const headers=[...new Set(rows.flatMap((x:any)=>Object.keys(x)))];
-  const dialect=id==='json-to-mysql'?'mysql':'standard';
+  const dialect=id==='json-to-mysql'?'mysql':id==='json-to-postgresql'?'postgresql':'standard';
   const table=sqlIdentifier(opts.table||'your_table',dialect);
   if(!headers.length)throw Error('Rows must contain at least one column.');
   const sqlValue=(value:any)=>{
     if(value===null)return 'NULL';
     if(typeof value==='number'||typeof value==='boolean')return String(value);
     const text=String(typeof value==='object'?JSON.stringify(value):value);
-    if(dialect==='mysql'){
+    if(dialect==='mysql'||dialect==='postgresql'){
       if(!text)return String.fromCharCode(39,39);
       const hex=[...new TextEncoder().encode(text)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
-      return 'CONVERT(0x'+hex+' USING utf8mb4)';
+      return dialect==='mysql'?'CONVERT(0x'+hex+' USING utf8mb4)':\"convert_from(decode('\"+hex+\"','hex'),'UTF8')\";
     }
     return String.fromCharCode(39)+text.replace(/'/g,"''")+String.fromCharCode(39);
   };
