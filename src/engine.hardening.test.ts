@@ -631,7 +631,7 @@ describe('production hardening: cloud, credentials and protocol edge cases', () 
   it('redacts more authorization schemes and common provider tokens', async () => {
     const input = 'Authorization: Digest abc123\nAWS_SESSION=ASIA1234567890123456\nGitLab=glpat-abcdefghijklmnopqrstuvwxyz\nSlack=xoxb-12345678901234567890'
     const out = await runTool('secret-redactor', input, '', {})
-    expect(out).toContain('Authorization: Digest [REDACTED]')
+    expect(out).toContain('Authorization: [REDACTED]')
     expect(out).not.toContain('ASIA1234567890123456')
     expect(out).not.toContain('glpat-abcdefghijklmnopqrstuvwxyz')
     expect(out).not.toContain('xoxb-12345678901234567890')
