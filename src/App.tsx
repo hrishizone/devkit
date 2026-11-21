@@ -8,6 +8,7 @@ import { categories, tools } from './tools'
 import { runTool } from './engine'
 
 const iconMap:any={Grid2X2,Braces,Binary,FileText,Database,Globe,Cloud,Network,Palette,ShieldCheck,Clock,GitBranch}
+const secondarySamples:Record<string,string>={'json-diff':'{"name":"DevKit","version":2}','text-diff':'The quick brown fox\njumps over the lazy dog!','regex-tester':'[A-Z][a-z]+'};
 const samples:Record<string,string>={
   'json-formatter':'{"name":"DevKit","version":1,"features":["format","validate"],"active":true}',
   'json-minifier':'{\n  "name": "DevKit",\n  "active": true\n}',
@@ -43,7 +44,8 @@ const samples:Record<string,string>={
   'chmod':'rwxr-xr-x',
   'lorem':'',
   'password':'',
-  'json-schema':'{"id":1,"name":"Ava","active":true}'
+  'json-schema':'{"id":1,"name":"Ava","active":true}',
+  'json-pointer-tester':'{"user":{"name":"Ava"}}'
 }
 
 function App(){
@@ -52,7 +54,7 @@ function App(){
   const [activeTool,setActiveTool]=useState(tools.some(t=>t.id===initialTool)?initialTool!:'json-formatter')
   const [query,setQuery]=useState('')
   const [input,setInput]=useState(samples[initialTool??'json-formatter']??'')
-  const [secondary,setSecondary]=useState('{"name":"DevKit","version":2}')
+  const [secondary,setSecondary]=useState(secondarySamples[initialTool??'']??'')
   const [output,setOutput]=useState('')
   const [error,setError]=useState('')
   const [copied,setCopied]=useState(false)
@@ -67,7 +69,7 @@ function App(){
   useEffect(()=>{
     const onPop=()=>{
       const slug=window.location.pathname.match(/\/tools\/([^/]+)/)?.[1]
-      if(slug&&tools.some(t=>t.id===slug)){executionId.current++;setRunning(false);setActiveTool(slug);setInput(samples[slug]??'');setOutput('');setError('')}
+      if(slug&&tools.some(t=>t.id===slug)){executionId.current++;setRunning(false);setActiveTool(slug);setInput(samples[slug]??'');setSecondary(secondarySamples[slug]??'');setOutput('');setError('')}
     }
     window.addEventListener('popstate',onPop)
     return ()=>window.removeEventListener('popstate',onPop)
@@ -93,7 +95,7 @@ function App(){
   const filtered=useMemo(()=>tools.filter(t=>(activeCategory==='All tools'||t.category===activeCategory)&&(!showFavorites||favorites.includes(t.id))&&(!query||[t.name,t.description,t.category,...t.tags].join(' ').toLowerCase().includes(query.toLowerCase()))),[activeCategory,query,showFavorites,favorites])
   const selectTool=(id:string)=>{
     const t=tools.find(x=>x.id===id); if(!t)return
-    executionId.current++;setRunning(false);setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setMobileNav(false)
+    executionId.current++;setRunning(false);setActiveTool(id);window.history.pushState({},'',`/tools/${id}`);setInput(samples[id]??'');setSecondary(secondarySamples[id]??'');setOutput('');setError('');setOptions({});setMode('encode');setMobileNav(false)
   }
   const execute=async()=>{
     const request=++executionId.current
@@ -108,7 +110,7 @@ function App(){
     try{if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');await navigator.clipboard.writeText(output);setCopied(true);window.setTimeout(()=>setCopied(false),1400)}
     catch{setError('Could not access the clipboard. Check browser permissions or copy the result manually.')}
   }
-  const reset=()=>{setInput(samples[activeTool]??'');setOutput('');setError('')}
+  const reset=()=>{setInput(samples[activeTool]??'');setSecondary(secondarySamples[activeTool]??'');setOutput('');setError('')}
   const isDual=['json-diff','text-diff'].includes(activeTool)
   const option=(key:string,value:string)=>setOptions(v=>({...v,[key]:value}))
   const categoryIcon=(name:string)=>{const C=iconMap[categories.find(c=>c.name===name)?.icon||'Grid2X2']||Grid2X2;return <C size={16}/>}
@@ -154,9 +156,24 @@ function App(){
           <div className="editor-grid">
             <div className="editor-panel"><div className="panel-head"><span>INPUT</span><div className="panel-tools"><span className="format-label">TEXT</span><button onClick={()=>setInput(samples[activeTool]??'')}>Load sample</button></div></div>
               {activeTool==='base64'||activeTool==='url-encoder'||activeTool==='html-entities'||activeTool==='hex-converter'?<div className="control-row"><button className={mode==='encode'?'mode-active':''} onClick={()=>setMode('encode')}>Encode</button><button className={mode==='decode'?'mode-active':''} onClick={()=>setMode('decode')}>Decode</button></div>:null}
-              {activeTool==='hash-generator'?<div className="control-row"><label>Algorithm</label><select value={options.algorithm||'SHA-256'} onChange={e=>option('algorithm',e.target.value)}><option>SHA-1</option><option>SHA-256</option><option>SHA-512</option></select></div>:null}
+              {activeTool==='hash-generator'?<div className="control-row"><label>Algorithm</label><select value={options.algorithm||'SHA-256'} onChange={e=>option('algorithm',e.target.value)}><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option></select></div>:null}
               {activeTool==='case-converter'?<div className="control-row"><label>Output case</label><select value={options.mode||'camelCase'} onChange={e=>option('mode',e.target.value)}><option>camelCase</option><option>PascalCase</option><option>snake_case</option><option>kebab-case</option><option>UPPER_CASE</option></select></div>:null}
               {activeTool==='regex-tester'?<div className="control-row"><label>Pattern</label><input className="inline-option" value={secondary} onChange={e=>setSecondary(e.target.value)} placeholder="Enter regex pattern"/><select value={options.flags||'g'} onChange={e=>option('flags',e.target.value)}><option>g</option><option>gi</option><option>im</option></select></div>:null}
+              {activeTool==='json-pointer-tester'?<div className="control-row"><label>JSON Pointer</label><input className="inline-option" aria-label="JSON Pointer" value={options.pointer||''} onChange={e=>option('pointer',e.target.value)} placeholder="/user/name"/></div>:null}
+              {activeTool==='csv-column-selector'?<div className="control-row"><label>Columns</label><input className="inline-option" aria-label="Columns" value={options.columns||''} onChange={e=>option('columns',e.target.value)} placeholder="name, email or 1, 2"/></div>:null}
+              {activeTool==='json-key-picker'||activeTool==='json-key-remover'?<div className="control-row"><label>Keys</label><input className="inline-option" aria-label="Keys" value={options.keys||''} onChange={e=>option('keys',e.target.value)} placeholder="name, email"/></div>:null}
+              {activeTool==='json-key-renamer'?<div className="control-row"><label>From</label><input className="inline-option" aria-label="Rename from" value={options.from||'oldKey'} onChange={e=>option('from',e.target.value)} placeholder="oldKey"/><label>To</label><input className="inline-option" aria-label="Rename to" value={options.to||'newKey'} onChange={e=>option('to',e.target.value)} placeholder="newKey"/></div>:null}
+              {activeTool==='json-array-sorter'?<div className="control-row"><label>Sort key</label><input className="inline-option" aria-label="Sort key" value={options.key||'name'} onChange={e=>option('key',e.target.value)} placeholder="name"/></div>:null}
+              {activeTool==='json-array-chunker'?<div className="control-row"><label>Chunk size</label><input className="inline-option" aria-label="Chunk size" value={options.size||'10'} onChange={e=>option('size',e.target.value)} inputMode="numeric"/></div>:null}
+              {activeTool==='json-to-typescript'?<div className="control-row"><label>Interface name</label><input className="inline-option" aria-label="Interface name" value={options.name||'Root'} onChange={e=>option('name',e.target.value)} placeholder="Root"/></div>:null}
+              {['sql-insert','sql-create-table-builder','json-to-postgresql','json-to-mysql'].includes(activeTool)?<div className="control-row"><label>Table</label><input className="inline-option" aria-label="Table name" value={options.table||'your_table'} onChange={e=>option('table',e.target.value)} placeholder="your_table"/></div>:null}
+              {activeTool==='hmac-sha-256'||activeTool==='webhook-signature-helper'?<div className="control-row"><label>Secret</label><input type="password" className="inline-option" aria-label="HMAC secret" value={options.secret||''} onChange={e=>option('secret',e.target.value)} placeholder="Enter signing secret" autoComplete="off"/></div>:null}
+              {activeTool==='docker-run'?<div className="control-row"><label>Name</label><input className="inline-option" aria-label="Container name" value={options.name||''} onChange={e=>option('name',e.target.value)} placeholder="optional"/><label>Ports</label><input className="inline-option" aria-label="Port mappings" value={options.ports||''} onChange={e=>option('ports',e.target.value)} placeholder="8080:80"/></div>:null}
+              {['random-token-generator','random-hex-generator','password'].includes(activeTool)?<div className="control-row"><label>Length</label><input className="inline-option" aria-label="Generated length" value={options.length||'32'} onChange={e=>option('length',e.target.value)} inputMode="numeric"/></div>:null}
+              {['nano-id-generator','passphrase-generator','uuid-generator','uuid-v7-generator','lorem'].includes(activeTool)?<div className="control-row"><label>Count</label><input className="inline-option" aria-label="Output count" value={options.count||'1'} onChange={e=>option('count',e.target.value)} inputMode="numeric"/></div>:null}
+              {activeTool==='log-level-filter'?<div className="control-row"><label>Level pattern</label><input className="inline-option" aria-label="Log level pattern" value={options.level||'ERROR|WARN|FATAL'} onChange={e=>option('level',e.target.value)} placeholder="ERROR|WARN|FATAL"/></div>:null}
+              {activeTool==='git-branch-name-helper'?<div className="control-row"><label>Branch type</label><input className="inline-option" aria-label="Branch type" value={options.type||'feature'} onChange={e=>option('type',e.target.value)} placeholder="feature"/></div>:null}
+              {activeTool==='conventional-commit-builder'?<div className="control-row"><label>Type</label><input className="inline-option" aria-label="Commit type" value={options.type||'feat'} onChange={e=>option('type',e.target.value)} placeholder="feat"/><label>Scope</label><input className="inline-option" aria-label="Commit scope" value={options.scope||''} onChange={e=>option('scope',e.target.value)} placeholder="optional"/></div>:null}
               {activeTool==='json-diff'||activeTool==='text-diff'?<><textarea aria-label="Tool input" spellCheck={false} value={input} onChange={e=>setInput(e.target.value)} placeholder="Paste first input..."/><div className="second-input-label">SECOND INPUT</div><textarea aria-label="Second comparison input" spellCheck={false} className="secondary-editor" value={secondary} onChange={e=>setSecondary(e.target.value)} placeholder="Paste second input..."/></>:<textarea aria-label="Tool input" spellCheck={false} value={input} onChange={e=>setInput(e.target.value)} placeholder="Paste or type your input here..."/>}
               <div className="panel-foot"><span>{input.length.toLocaleString()} characters</span><span><Lock size={11}/> Stays in your browser</span></div>
             </div>
